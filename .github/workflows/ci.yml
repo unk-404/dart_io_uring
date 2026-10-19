@@ -1,0 +1,120 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: test (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: x86_64
+            os: ubuntu-latest
+            arch: x86_64
+          # GitHub-hosted arm64 runner (public repositories / arm runners plan).
+          # Replace with a self-hosted arm64 label if it is not available.
+          - name: aarch64
+            os: ubuntu-24.04-arm
+            arch: aarch64
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: Environment
+        run: |
+          uname -a
+          dart --version
+
+      - name: Check io_uring availability
+        run: |
+          python3 - <<'PY'
+          import ctypes
+          import os
+
+          class Params(ctypes.Structure):
+              _fields_ = [
+                  ("sq_entries", ctypes.c_uint32),
+                  ("cq_entries", ctypes.c_uint32),
+                  ("flags", ctypes.c_uint32),
+                  ("sq_thread_cpu", ctypes.c_uint32),
+                  ("sq_thread_idle", ctypes.c_uint32),
+                  ("features", ctypes.c_uint32),
+                  ("wq_fd", ctypes.c_uint32),
+                  ("resv", ctypes.c_uint32 * 3),
+                  ("sq_off", ctypes.c_uint32 * 10),
+                  ("cq_off", ctypes.c_uint32 * 10),
+              ]
+
+          libc = ctypes.CDLL("libc.so.6", use_errno=True)
+          params = Params()
+          fd = libc.syscall(425, 8, ctypes.byref(params))
+          if fd < 0:
+              raise SystemExit(
+                  "io_uring_setup failed: errno=%d; "
+                  "this runner cannot exercise io_uring" % ctypes.get_errno()
+              )
+          os.close(fd)
+          print("io_uring available, features=0x%x" % params.features)
+          PY
+
+      - name: Install dependencies
+        run: dart pub get
+
+      - name: Analyze
+        run: dart analyze
+
+      - name: Test
+        run: dart test --reporter expanded
+
+      - name: Build AOT example
+        env:
+          ARCH: ${{ matrix.arch }}
+        run: |
+          mkdir -p build
+          dart compile exe example/io_uring_example.dart -o "build/io_uring_example-${ARCH}"
+
+      - name: Run AOT example
+        env:
+          ARCH: ${{ matrix.arch }}
+        run: ./build/io_uring_example-${ARCH}
+
+      - name: Build benchmark (AOT)
+        env:
+          ARCH: ${{ matrix.arch }}
+        run: |
+          mkdir -p build
+          dart compile exe benchmark/run.dart -o "build/io_uring_benchmark-${ARCH}"
+
+      - name: Run benchmark
+        env:
+          ARCH: ${{ matrix.arch }}
+        run: |
+          ./build/io_uring_benchmark-${ARCH} | tee "build/benchmark-${ARCH}.json"
+          {
+            echo "### Benchmark (${ARCH})"
+            echo '```json'
+            cat "build/benchmark-${ARCH}.json"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: io_uring-${{ matrix.arch }}
+          path: build/
+          if-no-files-found: error
+          retention-days: 14
