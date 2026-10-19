@@ -6,6 +6,8 @@ import '../ffi/constants.dart';
 import '../ffi/libc.dart';
 import '../ffi/memory_barrier.dart';
 import '../ops/op.dart';
+import '../register/buf_ring.dart';
+import '../register/files_update.dart';
 import '../register/probe.dart';
 import 'cqe.dart';
 import 'params.dart';
@@ -174,6 +176,8 @@ final class IoUring {
 
   bool _closed = false;
 
+  final Map<int, UringBufRing> _bufRings = {};
+
   int get sqCapacity => _sqEntries;
 
   int get cqCapacity => _cqEntries;
@@ -244,6 +248,13 @@ final class IoUring {
     if (_sqTail != _sqeTail) {
       _publishSqTail();
     }
+    if (parameters.isSetupSqpoll) {
+      if (sqNeedWakeup) {
+        _enter(0, 0, IoUringEnterFlags.sqWakeup);
+      }
+      _refreshSqHead();
+      return toSubmit;
+    }
     final submitted = _enter(toSubmit, 0, 0);
     _refreshSqHead();
     return submitted;
@@ -259,6 +270,17 @@ final class IoUring {
     final toSubmit = (_sqeTail - _sqeHead) & 0xFFFFFFFF;
     if (_sqTail != _sqeTail) {
       _publishSqTail();
+    }
+    if (parameters.isSetupSqpoll) {
+      if (sqNeedWakeup) {
+        _enter(0, 0, IoUringEnterFlags.sqWakeup);
+      }
+      _publishCqHead();
+      if (waitFor > 0) {
+        _enter(0, waitFor, IoUringEnterFlags.getEvents);
+      }
+      _refreshSqHead();
+      return toSubmit;
     }
     _publishCqHead();
     final flags = waitFor > 0 ? IoUringEnterFlags.getEvents : 0;
@@ -394,6 +416,124 @@ final class IoUring {
     _register(IoUringRegisterOpcode.unregisterEventfd, 0, 0);
   }
 
+  /// Updates a slice of the registered-file table.
+  void registerFilesUpdate(int offset, List<int> fds) {
+    _ensureOpen();
+    if (fds.isEmpty) {
+      throw ArgumentError.value(fds, 'fds', 'must not be empty');
+    }
+    if (offset < 0) {
+      throw ArgumentError.value(offset, 'offset', 'must not be negative');
+    }
+    final libc = Libc.instance;
+    final updatePointer = libc.calloc(1, sizeOf<UringFilesUpdate>());
+    final fdsPointer = libc.calloc(fds.length, 4);
+    if (updatePointer.address == 0 || fdsPointer.address == 0) {
+      if (updatePointer.address != 0) libc.free(updatePointer);
+      if (fdsPointer.address != 0) libc.free(fdsPointer);
+      throw StateError('Failed to allocate files-update buffers');
+    }
+    try {
+      final update = updatePointer.cast<UringFilesUpdate>().ref;
+      update
+        ..offset = offset
+        ..fds = fdsPointer.address;
+      final values = fdsPointer.cast<Int32>();
+      for (var i = 0; i < fds.length; i++) {
+        (values + i).value = fds[i];
+      }
+      _register(
+        IoUringRegisterOpcode.filesUpdate,
+        updatePointer.address,
+        fds.length,
+      );
+    } finally {
+      libc.free(updatePointer);
+      libc.free(fdsPointer);
+    }
+  }
+
+  /// Registers an anonymous provided-buffer ring.
+  UringBufRing registerBufRing({
+    required int entries,
+    required int bufferGroup,
+    int flags = 0,
+  }) {
+    _ensureOpen();
+    if (entries <= 0 || (entries & (entries - 1)) != 0) {
+      throw ArgumentError.value(entries, 'entries', 'must be a power of two');
+    }
+    if (bufferGroup < 0 || bufferGroup > 0xFFFF) {
+      throw ArgumentError.value(bufferGroup, 'bufferGroup', 'must be a u16');
+    }
+    if (_bufRings.containsKey(bufferGroup)) {
+      throw StateError('Buffer group $bufferGroup is already registered');
+    }
+
+    final libc = Libc.instance;
+    final size = entries * sizeOf<UringBuf>();
+    final memory = libc.mmapAnonymous(size);
+    if (memory.address == -1) {
+      throw IoUringException('mmap', libc.errno);
+    }
+    final regPointer = libc.calloc(1, sizeOf<UringBufReg>());
+    if (regPointer.address == 0) {
+      libc.munmap(memory, size);
+      throw StateError('Failed to allocate io_uring_buf_reg');
+    }
+    try {
+      final reg = regPointer.cast<UringBufReg>().ref;
+      reg
+        ..ringAddr = memory.address
+        ..ringEntries = entries
+        ..bgid = bufferGroup
+        ..flags = flags;
+      _register(IoUringRegisterOpcode.pbufRing, regPointer.address, 1);
+      final ring = UringBufRing(
+        pointer: memory,
+        entries: entries,
+        bufferGroup: bufferGroup,
+        barrier: _barrier,
+      );
+      _bufRings[bufferGroup] = ring;
+      return ring;
+    } on Object {
+      libc.munmap(memory, size);
+      rethrow;
+    } finally {
+      libc.free(regPointer);
+    }
+  }
+
+  void unregisterBufRing(int bufferGroup) {
+    _ensureOpen();
+    final ring = _bufRings[bufferGroup];
+    if (ring == null) {
+      throw ArgumentError.value(
+        bufferGroup,
+        'bufferGroup',
+        'is not registered',
+      );
+    }
+    final libc = Libc.instance;
+    final regPointer = libc.calloc(1, sizeOf<UringBufReg>());
+    if (regPointer.address == 0) {
+      throw StateError('Failed to allocate io_uring_buf_reg');
+    }
+    try {
+      regPointer.cast<UringBufReg>().ref.bgid = bufferGroup;
+      _register(
+        IoUringRegisterOpcode.unregisterPbufRing,
+        regPointer.address,
+        1,
+      );
+    } finally {
+      libc.free(regPointer);
+    }
+    _bufRings.remove(bufferGroup);
+    ring.dispose();
+  }
+
   int _register(int opcode, int argument, int nrArgs) {
     final result = Libc.instance.syscall6(
       IoUringSyscall.register,
@@ -413,6 +553,13 @@ final class IoUring {
   /// Releases the ring fd and unmaps all ring memory. Idempotent.
   void close() {
     if (_closed) return;
+    for (final group in _bufRings.keys.toList()) {
+      try {
+        unregisterBufRing(group);
+      } on Object {
+        _bufRings.remove(group)?.dispose();
+      }
+    }
     _closed = true;
     _memory.unmap();
     Libc.instance.close(fd);

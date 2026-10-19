@@ -19,7 +19,9 @@ export 'src/ffi/constants.dart'
         SpliceFlags;
 export 'src/ops/op.dart';
 export 'src/os/posix.dart';
+export 'src/register/buf_ring.dart' show UringBufRing;
 export 'src/register/probe.dart' show IoUringProbeResult;
+export 'src/ring/builder.dart';
 export 'src/ring/cqe.dart';
 export 'src/ring/io_uring.dart';
 export 'src/ring/params.dart'

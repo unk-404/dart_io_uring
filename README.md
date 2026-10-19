@@ -18,6 +18,9 @@ rings over raw syscalls via `dart:ffi`. No C sources, no native build step, no
 - Links (`IOSQE_IO_LINK`), relative/absolute timeouts, timeout removal, link
   timeouts, async cancellation, poll add/remove, provided buffers and multishot
   receive.
+- `IoUringBuilder` with SQPOLL/IOPOLL/CQ-size/taskrun options; SQPOLL wakeup
+  handling.
+- Registered-file updates and provided-buffer rings (`UringBufRing`).
 - Kernel probe (`IORING_REGISTER_PROBE`) for per-op support checks.
 - Native buffer, `iovec`, IPv4 `sockaddr_in` and pipe helpers; raw fd helpers
   (`openat`, `close`, `eventfd`, `read`, `write`, `getsockname`, `pipe2`).

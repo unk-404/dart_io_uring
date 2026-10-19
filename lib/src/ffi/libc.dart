@@ -146,6 +146,10 @@ final class Libc {
     int flags = 0x8001, // MAP_SHARED | MAP_POPULATE
   }) => _mmap(Pointer<Void>.fromAddress(0), length, prot, flags, fd, offset);
 
+  /// Anonymous page-aligned memory (MAP_PRIVATE | MAP_ANONYMOUS).
+  Pointer<Uint8> mmapAnonymous(int length) =>
+      _mmap(Pointer<Void>.fromAddress(0), length, 0x3, 0x22, -1, 0);
+
   int munmap(Pointer<Uint8> address, int length) =>
       _munmap(address.cast<Void>(), length);
 

@@ -184,6 +184,8 @@ abstract final class IoUringRegisterOpcode {
   static const int filesUpdate = 6;
   static const int eventfdAsync = 7;
   static const int probe = 8;
+  static const int pbufRing = 22;
+  static const int unregisterPbufRing = 23;
 }
 
 /// Socket constants needed by the network operations.

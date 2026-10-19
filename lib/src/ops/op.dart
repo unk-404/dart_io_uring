@@ -899,3 +899,28 @@ final class RecvMultiOp implements UringOp {
       ..flags |= IoUringSqeFlags.bufferSelect;
   }
 }
+
+/// `IORING_OP_FILES_UPDATE`: updates registered file descriptors.
+final class FilesUpdateOp implements UringOp {
+  const FilesUpdateOp({
+    required this.fds,
+    required this.count,
+    this.offset = 0,
+  });
+
+  final Pointer<Int32> fds;
+  final int count;
+  final int offset;
+
+  @override
+  int get opcode => IoUringOpcode.filesUpdate;
+
+  @override
+  void prepare(Pointer<IoUringSqe> sqe) {
+    sqe.ref
+      ..fd = -1
+      ..addr = fds.address
+      ..len = count
+      ..off = offset;
+  }
+}
