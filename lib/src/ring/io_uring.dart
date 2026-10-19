@@ -1,5 +1,6 @@
 import 'dart:ffi';
 
+import '../async/layout.dart';
 import '../buffer.dart';
 import '../errors.dart';
 import '../ffi/constants.dart';
@@ -205,6 +206,20 @@ final class IoUring {
   bool get sqNeedWakeup => (_sqFlagsPtr.value & IoUringSqFlags.needWakeup) != 0;
 
   bool get isClosed => _closed;
+
+  /// Layout of the CQ ring for the async reaper isolate.
+  IoUringAsyncLayout get asyncLayout {
+    _ensureOpen();
+    return IoUringAsyncLayout(
+      fd: fd,
+      cqRingAddress: _memory.cqRing.address,
+      cqHeadOffset: parameters.cqOff.head,
+      cqTailOffset: parameters.cqOff.tail,
+      cqMask: _cqMask,
+      cqesOffset: parameters.cqOff.cqes,
+      cqeSize: _cqeSize,
+    );
+  }
 
   /// Reserves and zeroes the next SQE slot, or returns `null` when the ring is
   /// full. The caller must eventually call [submit].

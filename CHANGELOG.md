@@ -11,6 +11,8 @@
 - `IoUringBuilder` with SQPOLL/IOPOLL/CQ-size/taskrun flags and SQPOLL wakeup.
 - Registered-file updates (`registerFilesUpdate` / `FilesUpdateOp`) and
   provided-buffer rings (`registerBufRing` / `UringBufRing`).
+- Future-based `UringLoop`: owner submits directly, a reaper isolate blocks in
+  `io_uring_enter` and completes Futures.
 - Native buffers, raw-fd helpers (`openat`/`close`/`eventfd`/`read`), and a
   small memory-barrier abstraction.
 - x86_64 support; aarch64 ring publication uses libatomic fences with a

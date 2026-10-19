@@ -1,6 +1,8 @@
 /// A pure-Dart, syscall-level interface to Linux io_uring.
 library;
 
+export 'src/async/layout.dart';
+export 'src/async/loop.dart';
 export 'src/buffer.dart';
 export 'src/errors.dart';
 export 'src/ffi/constants.dart'

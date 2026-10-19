@@ -21,6 +21,8 @@ rings over raw syscalls via `dart:ffi`. No C sources, no native build step, no
 - `IoUringBuilder` with SQPOLL/IOPOLL/CQ-size/taskrun options; SQPOLL wakeup
   handling.
 - Registered-file updates and provided-buffer rings (`UringBufRing`).
+- `UringLoop`: Future-based API with an owner/reaper isolate pair; the owner
+  submits directly and a reaper isolate blocks in `io_uring_enter`.
 - Kernel probe (`IORING_REGISTER_PROBE`) for per-op support checks.
 - Native buffer, `iovec`, IPv4 `sockaddr_in` and pipe helpers; raw fd helpers
   (`openat`, `close`, `eventfd`, `read`, `write`, `getsockname`, `pipe2`).
@@ -74,6 +76,24 @@ void main() {
 }
 ```
 
+Future-based API:
+
+```dart
+final loop = await UringLoop.open(entries: 64);
+try {
+  final cqe = await loop.run(const NopOp());
+  if (cqe.isError) {
+    throw IoUringException('nop', cqe.errno);
+  }
+} finally {
+  await loop.close();
+}
+```
+
+The owner isolate submits directly; a reaper isolate blocks in
+`io_uring_enter(GETEVENTS)` and returns CQEs. Do not call `waitCqe`/`nextCqe`
+on `loop.ring`; use `loop.run` / `loop.runAll`.
+
 Opening files through the ring:
 
 ```dart
@@ -115,6 +135,7 @@ dart pub get
 dart analyze
 dart test
 dart run example/io_uring_example.dart
+dart run example/async_nop.dart
 dart run example/tcp_echo.dart   # then: nc 127.0.0.1 <port>
 dart compile exe example/io_uring_example.dart -o build/io_uring_example
 ```
