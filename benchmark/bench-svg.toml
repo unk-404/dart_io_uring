@@ -1,0 +1,43 @@
+[render]
+title = "io_uring: native C vs Dart"
+subtitle = "Linux · {arch} · C raw syscalls vs Dart AOT"
+footer = "Higher is better · NOP / batch64 / 4 KiB read"
+width = 920.0
+theme = "pastel"
+kaomoji = ""
+
+[[series]]
+label = "C (raw syscalls)"
+input = "build/bench-svg/c.json"
+color = "#5B8FF9"
+
+[[series]]
+label = "Dart sync"
+input = "build/bench-svg/dart-sync.json"
+color = "#61DDAA"
+
+[[series]]
+label = "Dart async"
+input = "build/bench-svg/dart-async.json"
+color = "#F6BD16"
+
+[[row]]
+id = "nop.qd1"
+label = "NOP QD1"
+note = "submit 1 · wait 1"
+unit = "ops/s"
+group = "NOP"
+
+[[row]]
+id = "nop.batch64"
+label = "NOP batch 64"
+note = "64 SQEs per submit"
+unit = "ops/s"
+group = "NOP"
+
+[[row]]
+id = "read.4k.qd1"
+label = "4K read QD1"
+note = "1 MiB file · rotating offset"
+unit = "MiB/s"
+group = "File I/O"

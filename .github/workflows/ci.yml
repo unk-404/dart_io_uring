@@ -92,25 +92,6 @@ jobs:
           ARCH: ${{ matrix.arch }}
         run: ./build/io_uring_example-${ARCH}
 
-      - name: Build benchmark (AOT)
-        env:
-          ARCH: ${{ matrix.arch }}
-        run: |
-          mkdir -p build
-          dart compile exe benchmark/run.dart -o "build/io_uring_benchmark-${ARCH}"
-
-      - name: Run benchmark
-        env:
-          ARCH: ${{ matrix.arch }}
-        run: |
-          ./build/io_uring_benchmark-${ARCH} | tee "build/benchmark-${ARCH}.json"
-          {
-            echo "### Benchmark (${ARCH})"
-            echo '```json'
-            cat "build/benchmark-${ARCH}.json"
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
-
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -118,3 +99,65 @@ jobs:
           path: build/
           if-no-files-found: error
           retention-days: 14
+
+  benchmark:
+    name: benchmark + assets
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    concurrency:
+      group: benchmark-svg-${{ github.ref }}
+      cancel-in-progress: true
+    env:
+      BENCH_SVG_VERSION: v2026.10.19-48db7d1
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: Install dependencies
+        run: dart pub get
+
+      - name: Install benchmark toolchain
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y fonts-dejavu-core build-essential
+          mkdir -p build/tools/bench-svg
+          curl -fsSL \
+            "https://github.com/unk-404/benchmark_svg/releases/download/${BENCH_SVG_VERSION}/bench-svg-x86_64-unknown-linux-gnu.tar.gz" \
+            | tar -xz -C build/tools/bench-svg
+
+      - name: Run benchmarks and render SVG
+        env:
+          BENCH_SVG: ${{ github.workspace }}/build/tools/bench-svg/bench-svg
+        run: dart run benchmark/render_bench_svg.dart
+
+      - name: Upload benchmark assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: io-uring-benchmark-svg
+          path: |
+            assets/benchmarks.svg
+            build/benchmark_compare.json
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Commit refreshed chart
+        if: github.event_name != 'pull_request'
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- assets/benchmarks.svg; then
+            echo "Benchmark chart unchanged"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/benchmarks.svg
+          git commit -m "chore(bench): refresh benchmark chart [skip ci]"
+          git push

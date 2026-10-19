@@ -169,11 +169,30 @@ It builds `benchmark/c/io_uring_bench.c`, runs it, runs
 `benchmark/dart_io_uring_benchmark_test.dart`, prints a Markdown table, and
 writes `build/benchmark_compare.json`. See `benchmark/README.md` for details.
 
-CI runs `analyze` + `test` on `x86_64` and `aarch64`, builds the example and
-benchmark with AOT, runs the quick benchmark, writes its JSON to the job
-summary, and uploads the example binary plus benchmark results as artifacts.
-There is no release/publish job. The C/Dart comparison is currently a local
-tool; a Benchmark GitHub Action will be wired separately.
+![io_uring benchmark: native C vs Dart](https://raw.githubusercontent.com/unk-404/dart_io_uring/main/assets/benchmarks.svg)
+
+The SVG is rendered from both benchmark suites by
+[`bench-svg`](https://github.com/unk-404/benchmark_svg) using
+`benchmark/bench-svg.toml`:
+
+```bash
+BENCH_SVG=/path/to/bench-svg dart run benchmark/render_bench_svg.dart
+# reuse the last build/benchmark_compare.json:
+BENCH_SVG=/path/to/bench-svg dart run benchmark/render_bench_svg.dart --skip-run
+```
+
+`BENCH_SVG_FONT_FILE` (or `--font-file`) selects the TTF used for outlined
+labels; the default is DejaVu Sans on Linux.
+
+CI runs `analyze` + `test` on `x86_64` and `aarch64`, builds and runs the AOT
+example, and uploads the example binaries as artifacts. There is no
+release/publish job.
+
+The [CI benchmark job](https://github.com/unk-404/dart_io_uring/blob/main/.github/workflows/ci.yml)
+depends on the test job, so it only runs after both architectures pass. It runs
+the C and Dart benchmarks, renders `assets/benchmarks.svg` with `bench-svg`,
+uploads the SVG/JSON as artifacts, and commits the refreshed SVG back when it
+changed. The commit uses `[skip ci]` to avoid a loop.
 
 ## License
 

@@ -1,6 +1,7 @@
 name: io_uring
 description: A pure-Dart, syscall-level interface to Linux io_uring.
 version: 0.1.0
+repository: https://github.com/unk-404/dart_io_uring
 topics:
   - io
   - linux

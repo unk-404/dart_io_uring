@@ -15,6 +15,10 @@
   `io_uring_enter` and completes Futures.
 - C vs Dart benchmark suite: raw-syscall C ring and `benchmark_test` AOT Dart
   suite, with a comparison runner (`benchmark/compare.dart`).
+- `bench-svg` integration: canonical JSON + `benchmark/bench-svg.toml` render
+  `assets/benchmarks.svg`, embedded in the README.
+- CI benchmark job after tests: runs C/Dart benchmarks, renders the SVG,
+  uploads artifacts, and commits the refreshed chart back to the branch.
 - Hot-path performance work: 8×64-bit SQE zeroing, cached SQE Struct views,
   x86_64 barrier-fence elision (TSO), removed redundant CQ-head stores, and
   `reapCqes` raw batch reaping without per-completion object allocation.

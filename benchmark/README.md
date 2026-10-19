@@ -58,6 +58,22 @@ dart run benchmark_test --compile aot --output jsonl \
   benchmark/dart_io_uring_benchmark_test.dart
 ```
 
+## SVG chart
+
+The README chart lives in `assets/benchmarks.svg`. It is rendered from both
+suites by [`bench-svg`](https://github.com/unk-404/benchmark_svg) with
+`benchmark/bench-svg.toml`:
+
+```bash
+BENCH_SVG=/path/to/bench-svg dart run benchmark/render_bench_svg.dart
+# reuse build/benchmark_compare.json:
+BENCH_SVG=/path/to/bench-svg dart run benchmark/render_bench_svg.dart --skip-run
+```
+
+`render_bench_svg.dart` runs `compare.dart --json`, writes canonical
+`bench-svg/report@1` inputs to `build/bench-svg/`, and invokes `bench-svg render`.
+Use `--font-file` or `BENCH_SVG_FONT_FILE` if DejaVu Sans is not installed.
+
 ## Notes
 
 - Numbers are machine-dependent and noisy on shared CI runners; compare trends,
