@@ -15,6 +15,9 @@ rings over raw syscalls via `dart:ffi`. No C sources, no native build step, no
   `FALLOCATE`, `SOCKET`, `BIND`, `LISTEN`, `ACCEPT`, `CONNECT`, `SEND`, `RECV`,
   `SHUTDOWN`, `SPLICE`, `TEE`.
 - Registered buffers, registered files, and eventfd notification.
+- Links (`IOSQE_IO_LINK`), relative/absolute timeouts, timeout removal, link
+  timeouts, async cancellation, poll add/remove, provided buffers and multishot
+  receive.
 - Kernel probe (`IORING_REGISTER_PROBE`) for per-op support checks.
 - Native buffer, `iovec`, IPv4 `sockaddr_in` and pipe helpers; raw fd helpers
   (`openat`, `close`, `eventfd`, `read`, `write`, `getsockname`, `pipe2`).
@@ -84,8 +87,8 @@ path.dispose();
 
 See `example/` for complete programs, including
 [`tcp_echo.dart`](example/tcp_echo.dart) (a loopback TCP echo server). See
-`test/` for probe, registration, vectored I/O, statx, fallocate, network, pipe
-and error-path coverage.
+`test/` for probe, registration, vectored I/O, statx, fallocate, network, pipe,
+timeout/cancel/poll, multishot and error-path coverage.
 
 ## Design notes
 

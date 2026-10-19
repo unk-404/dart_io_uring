@@ -221,14 +221,17 @@ final class IoUring {
   }
 
   /// Encodes [op] into a fresh SQE.
-  void push(UringOp op, {int userData = 0}) {
+  ///
+  /// [sqeFlags] are `IOSQE_*` flags (e.g. `IoUringSqeFlags.ioLink`).
+  void push(UringOp op, {int userData = 0, int sqeFlags = 0}) {
     final pointer = nextSqe();
     if (pointer == null) {
       throw StateError('Submission queue is full');
     }
     pointer.ref
       ..userData = userData
-      ..opcode = op.opcode;
+      ..opcode = op.opcode
+      ..flags = sqeFlags;
     op.prepare(pointer);
   }
 

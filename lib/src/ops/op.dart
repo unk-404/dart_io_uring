@@ -692,3 +692,210 @@ final class TeeOp implements UringOp {
       ..opFlags = flags | (fixedIn ? SpliceFlags.fdInFixed : 0);
   }
 }
+
+/// `IORING_OP_POLL_ADD`.
+final class PollAddOp implements UringOp {
+  const PollAddOp({
+    required this.fd,
+    required this.events,
+    this.multi = false,
+    this.fixedFile = false,
+  });
+
+  final int fd;
+  final int events;
+  final bool multi;
+  final bool fixedFile;
+
+  @override
+  int get opcode => IoUringOpcode.pollAdd;
+
+  @override
+  void prepare(Pointer<IoUringSqe> sqe) {
+    final entry = sqe.ref;
+    _setFd(entry, fd, fixedFile);
+    entry.opFlags = events;
+    if (multi) {
+      entry.len = IoUringMultishotFlags.pollAddMulti;
+    }
+  }
+}
+
+/// `IORING_OP_POLL_REMOVE`.
+final class PollRemoveOp implements UringOp {
+  const PollRemoveOp({required this.userData});
+
+  final int userData;
+
+  @override
+  int get opcode => IoUringOpcode.pollRemove;
+
+  @override
+  void prepare(Pointer<IoUringSqe> sqe) {
+    sqe.ref
+      ..fd = -1
+      ..addr = userData;
+  }
+}
+
+/// `IORING_OP_TIMEOUT`.
+///
+/// [timespec] must stay alive until the completion arrives.
+final class TimeoutOp implements UringOp {
+  const TimeoutOp({required this.timespec, this.count = 0, this.flags = 0});
+
+  final UringTimespec timespec;
+  final int count;
+  final int flags;
+
+  @override
+  int get opcode => IoUringOpcode.timeout;
+
+  @override
+  void prepare(Pointer<IoUringSqe> sqe) {
+    sqe.ref
+      ..fd = -1
+      ..addr = timespec.pointer.address
+      ..len = 1
+      ..off = count
+      ..opFlags = flags;
+  }
+}
+
+/// `IORING_OP_TIMEOUT_REMOVE`.
+final class TimeoutRemoveOp implements UringOp {
+  const TimeoutRemoveOp({required this.userData, this.flags = 0});
+
+  final int userData;
+  final int flags;
+
+  @override
+  int get opcode => IoUringOpcode.timeoutRemove;
+
+  @override
+  void prepare(Pointer<IoUringSqe> sqe) {
+    sqe.ref
+      ..fd = -1
+      ..addr = userData
+      ..opFlags = flags;
+  }
+}
+
+/// `IORING_OP_LINK_TIMEOUT`, used as the last entry of a linked chain.
+final class LinkTimeoutOp implements UringOp {
+  const LinkTimeoutOp({required this.timespec, this.flags = 0});
+
+  final UringTimespec timespec;
+  final int flags;
+
+  @override
+  int get opcode => IoUringOpcode.linkTimeout;
+
+  @override
+  void prepare(Pointer<IoUringSqe> sqe) {
+    sqe.ref
+      ..fd = -1
+      ..addr = timespec.pointer.address
+      ..len = 1
+      ..opFlags = flags;
+  }
+}
+
+/// `IORING_OP_ASYNC_CANCEL` targeting a `user_data` value.
+final class AsyncCancelOp implements UringOp {
+  const AsyncCancelOp({required this.userData, this.flags = 0});
+
+  final int userData;
+  final int flags;
+
+  @override
+  int get opcode => IoUringOpcode.asyncCancel;
+
+  @override
+  void prepare(Pointer<IoUringSqe> sqe) {
+    sqe.ref
+      ..fd = -1
+      ..addr = userData
+      ..opFlags = flags;
+  }
+}
+
+/// `IORING_OP_PROVIDE_BUFFERS`.
+final class ProvideBuffersOp implements UringOp {
+  const ProvideBuffersOp({
+    required this.buffer,
+    required this.length,
+    required this.count,
+    required this.bufferGroup,
+    this.bufferId = 0,
+  });
+
+  final Pointer<Uint8> buffer;
+  final int length;
+  final int count;
+  final int bufferGroup;
+  final int bufferId;
+
+  @override
+  int get opcode => IoUringOpcode.provideBuffers;
+
+  @override
+  void prepare(Pointer<IoUringSqe> sqe) {
+    sqe.ref
+      ..fd = count
+      ..addr = buffer.address
+      ..len = length
+      ..off = bufferId
+      ..bufIndex = bufferGroup;
+  }
+}
+
+/// `IORING_OP_REMOVE_BUFFERS`.
+final class RemoveBuffersOp implements UringOp {
+  const RemoveBuffersOp({required this.count, required this.bufferGroup});
+
+  final int count;
+  final int bufferGroup;
+
+  @override
+  int get opcode => IoUringOpcode.removeBuffers;
+
+  @override
+  void prepare(Pointer<IoUringSqe> sqe) {
+    sqe.ref
+      ..fd = count
+      ..bufIndex = bufferGroup;
+  }
+}
+
+/// Multishot `IORING_OP_RECV` with provided-buffer selection.
+final class RecvMultiOp implements UringOp {
+  const RecvMultiOp({
+    required this.fd,
+    required this.bufferGroup,
+    this.length = 0,
+    this.flags = 0,
+    this.fixedFile = false,
+  });
+
+  final int fd;
+  final int bufferGroup;
+  final int length;
+  final int flags;
+  final bool fixedFile;
+
+  @override
+  int get opcode => IoUringOpcode.recv;
+
+  @override
+  void prepare(Pointer<IoUringSqe> sqe) {
+    final entry = sqe.ref;
+    _setFd(entry, fd, fixedFile);
+    entry
+      ..len = length
+      ..opFlags = flags
+      ..bufIndex = bufferGroup
+      ..ioprio = IoUringMultishotFlags.recvMulti
+      ..flags |= IoUringSqeFlags.bufferSelect;
+  }
+}

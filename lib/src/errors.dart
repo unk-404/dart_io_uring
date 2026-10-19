@@ -70,6 +70,7 @@ String errnoName(int code) => switch (code) {
   34 => 'ERANGE',
   38 => 'ENOSYS',
   40 => 'ELOOP',
+  62 => 'ETIME',
   75 => 'EOVERFLOW',
   88 => 'ENOTSOCK',
   89 => 'EDESTADDRREQ',
@@ -78,7 +79,9 @@ String errnoName(int code) => switch (code) {
   99 => 'EADDRNOTAVAIL',
   103 => 'ECONNABORTED',
   104 => 'ECONNRESET',
+  105 => 'ENOBUFS',
   110 => 'ETIMEDOUT',
   111 => 'ECONNREFUSED',
+  125 => 'ECANCELED',
   _ => 'errno $code',
 };

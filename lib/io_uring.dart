@@ -11,6 +11,9 @@ export 'src/ffi/constants.dart'
         IoUringRegisterOpcode,
         IoUringSetupFlags,
         IoUringSqeFlags,
+        IoUringTimeoutFlags,
+        IoUringMultishotFlags,
+        PollEvents,
         PosixConstants,
         SocketConstants,
         SpliceFlags;

@@ -207,6 +207,37 @@ abstract final class SpliceFlags {
   static const int fdInFixed = 0x80000000;
 }
 
+/// Poll event bits used by `IORING_OP_POLL_ADD`.
+abstract final class PollEvents {
+  static const int pollIn = 0x0001;
+  static const int pollPri = 0x0002;
+  static const int pollOut = 0x0004;
+  static const int pollErr = 0x0008;
+  static const int pollHup = 0x0010;
+  static const int pollNval = 0x0020;
+  static const int pollRdNorm = 0x0040;
+  static const int pollRdBand = 0x0080;
+  static const int pollWrBand = 0x0100;
+  static const int pollRdHup = 0x0200;
+}
+
+/// Flags for `IORING_OP_TIMEOUT` / `IORING_OP_LINK_TIMEOUT`.
+abstract final class IoUringTimeoutFlags {
+  static const int absolute = 1 << 0;
+  static const int update = 1 << 1;
+  static const int boottime = 1 << 2;
+  static const int realtime = 1 << 3;
+  static const int linkUpdate = 1 << 4;
+  static const int etimeSuccess = 1 << 5;
+  static const int multishot = 1 << 6;
+}
+
+/// Op-specific flags for poll/recv multishot requests.
+abstract final class IoUringMultishotFlags {
+  static const int pollAddMulti = 1 << 0;
+  static const int recvMulti = 1 << 1;
+}
+
 /// Minimal POSIX constants needed by the raw-fd layer.
 abstract final class PosixConstants {
   static const int atFdCwd = -100;

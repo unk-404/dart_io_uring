@@ -45,6 +45,47 @@ final class UringBuffer {
   }
 }
 
+/// A native `struct __kernel_timespec` (16 bytes) for timeout operations.
+final class UringTimespec {
+  UringTimespec({required int seconds, int nanoseconds = 0}) {
+    if (seconds < 0) {
+      throw ArgumentError.value(seconds, 'seconds', 'must not be negative');
+    }
+    if (nanoseconds < 0 || nanoseconds > 999999999) {
+      throw ArgumentError.value(
+        nanoseconds,
+        'nanoseconds',
+        'must be in 0..999999999',
+      );
+    }
+    final memory = Libc.instance.calloc(1, 16);
+    if (memory.address == 0) {
+      throw IoUringException('calloc', 12);
+    }
+    final words = memory.cast<Int64>();
+    words.value = seconds;
+    (words + 1).value = nanoseconds;
+    pointer = memory;
+  }
+
+  factory UringTimespec.milliseconds(int milliseconds) {
+    return UringTimespec(
+      seconds: milliseconds ~/ 1000,
+      nanoseconds: (milliseconds % 1000) * 1000000,
+    );
+  }
+
+  late final Pointer<Uint8> pointer;
+
+  bool _disposed = false;
+
+  void dispose() {
+    if (_disposed) return;
+    _disposed = true;
+    Libc.instance.free(pointer);
+  }
+}
+
 /// One element of a `readv`/`writev` vector.
 final class UringIoVec {
   const UringIoVec({required this.buffer, required this.length});

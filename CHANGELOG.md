@@ -6,6 +6,8 @@
 - Network operations: SOCKET/BIND/LISTEN/ACCEPT/CONNECT/SEND/RECV/SHUTDOWN,
   with a loopback TCP echo test and example.
 - SPLICE/TEE with pipe helpers and tests.
+- Links, relative/absolute timeouts, timeout removal, link timeouts, async
+  cancellation, poll add/remove, provided buffers and multishot receive.
 - Native buffers, raw-fd helpers (`openat`/`close`/`eventfd`/`read`), and a
   small memory-barrier abstraction.
 - x86_64 support; aarch64 ring publication uses libatomic fences with a
