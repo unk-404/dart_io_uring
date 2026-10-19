@@ -126,6 +126,7 @@ final class IoUring {
     _sqeTail = _sqTailPtr.value;
     _sqTail = _sqeTail;
     _cqHead = _cqHeadPtr.value;
+    _sqeStructViews = List<IoUringSqe?>.filled(_sqEntries, null);
 
     // The kernel's SQ array is a fixed identity mapping; only the SQE array is
     // mutated. Initializing it once means submissions never touch the array.
@@ -162,6 +163,12 @@ final class IoUring {
   late final int _sqEntries;
   late final int _cqMask;
   late final int _cqEntries;
+
+  /// Cached Struct views over SQE slots (one per used slot).
+  late final List<IoUringSqe?> _sqeStructViews;
+
+  /// Slot returned by the most recent [nextSqe], used by [push].
+  int _lastSqeSlot = 0;
 
   /// SQE slot the kernel has consumed up to (from `sq.head`).
   int _sqeHead = 0;
@@ -233,8 +240,19 @@ final class IoUring {
     }
 
     final slot = _sqeTail & _sqMask;
+    _lastSqeSlot = slot;
     final pointer = (_sqes + (slot * _sqeSize)).cast<IoUringSqe>();
-    pointer.cast<Uint8>().asTypedList(_sqeSize).fillRange(0, _sqeSize, 0);
+    // Zero the 64-byte SQE with eight 64-bit stores (cheaper than a typed-list
+    // view + fillRange on the hot path).
+    final words = pointer.cast<Uint64>();
+    words.value = 0;
+    (words + 1).value = 0;
+    (words + 2).value = 0;
+    (words + 3).value = 0;
+    (words + 4).value = 0;
+    (words + 5).value = 0;
+    (words + 6).value = 0;
+    (words + 7).value = 0;
     _sqeTail = (_sqeTail + 1) & 0xFFFFFFFF;
     return pointer;
   }
@@ -243,15 +261,21 @@ final class IoUring {
   ///
   /// [sqeFlags] are `IOSQE_*` flags (e.g. `IoUringSqeFlags.ioLink`).
   void push(UringOp op, {int userData = 0, int sqeFlags = 0}) {
-    final pointer = nextSqe();
-    if (pointer == null) {
+    if (nextSqe() == null) {
       throw StateError('Submission queue is full');
     }
-    pointer.ref
+    final sqe = _sqeStructView(_lastSqeSlot);
+    sqe
       ..userData = userData
       ..opcode = op.opcode
       ..flags = sqeFlags;
-    op.prepare(pointer);
+    op.prepare(sqe);
+  }
+
+  IoUringSqe _sqeStructView(int slot) {
+    return _sqeStructViews[slot] ??= (_sqes + (slot * _sqeSize))
+        .cast<IoUringSqe>()
+        .ref;
   }
 
   /// Publishes all filled SQEs and calls `io_uring_enter` without waiting.
@@ -290,14 +314,12 @@ final class IoUring {
       if (sqNeedWakeup) {
         _enter(0, 0, IoUringEnterFlags.sqWakeup);
       }
-      _publishCqHead();
       if (waitFor > 0) {
         _enter(0, waitFor, IoUringEnterFlags.getEvents);
       }
       _refreshSqHead();
       return toSubmit;
     }
-    _publishCqHead();
     final flags = waitFor > 0 ? IoUringEnterFlags.getEvents : 0;
     final submitted = _enter(toSubmit, waitFor, flags);
     _refreshSqHead();
@@ -307,7 +329,6 @@ final class IoUring {
   /// Blocks until at least one completion is available and returns it.
   IoUringCompletion waitCqe() {
     _ensureOpen();
-    _publishCqHead();
     while (true) {
       final tail = _readCqTail();
       if (_cqHead != tail) {
@@ -323,6 +344,32 @@ final class IoUring {
     final tail = _readCqTail();
     if (_cqHead == tail) return null;
     return _popCqe();
+  }
+
+  /// Copies up to [max] raw 16-byte CQEs into [out].
+  ///
+  /// This avoids one Dart object allocation per completion and publishes the CQ
+  /// head once for the whole batch. Layout per entry:
+  /// `u64 user_data`, `i32 res`, `u32 flags`.
+  int reapCqes(Pointer<Uint8> out, int max) {
+    _ensureOpen();
+    if (max <= 0) return 0;
+
+    final tail = _readCqTail();
+    var count = (tail - _cqHead) & 0xFFFFFFFF;
+    if (count > max) count = max;
+
+    for (var i = 0; i < count; i++) {
+      final source = (_cqes + ((_cqHead + i) & _cqMask) * _cqeSize)
+          .cast<Uint64>();
+      final destination = (out + i * _cqeSize).cast<Uint64>();
+      destination.value = source.value;
+      (destination + 1).value = (source + 1).value;
+    }
+
+    _cqHead = (_cqHead + count) & 0xFFFFFFFF;
+    _publishCqHead();
+    return count;
   }
 
   /// Queries which operations the running kernel supports.

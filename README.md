@@ -1,15 +1,17 @@
 # io_uring
 
 A pure-Dart interface to Linux `io_uring`: hand-written submission/completion
-rings over raw syscalls via `dart:ffi`. No C sources, no native build step, no
-`liburing`.
+rings over raw syscalls via `dart:ffi`. The library has no C sources, no native
+build step, and no `liburing`; `benchmark/c/` contains an optional native C
+comparison benchmark.
 
 ## Features
 
 - `io_uring_setup` / `io_uring_enter` / `io_uring_register` through libc's
   `syscall()`; ring memory is mapped with `mmap`.
 - Hand-written SQ/CQ rings, 64-byte SQEs, 16-byte CQEs, kernel-reported offsets.
-- Batch submission, blocking wait, non-blocking completion polling.
+- Batch submission, blocking wait, non-blocking completion polling, and
+  zero-allocation batch reaping (`reapCqes`).
 - Typed operations: `NOP`, `READ`, `WRITE`, `FSYNC`, `OPENAT`, `CLOSE`,
   `STATX`, `READV`, `WRITEV`, `READ_FIXED`, `WRITE_FIXED`, `FTRUNCATE`,
   `FALLOCATE`, `SOCKET`, `BIND`, `LISTEN`, `ACCEPT`, `CONNECT`, `SEND`, `RECV`,
@@ -26,6 +28,8 @@ rings over raw syscalls via `dart:ffi`. No C sources, no native build step, no
 - Kernel probe (`IORING_REGISTER_PROBE`) for per-op support checks.
 - Native buffer, `iovec`, IPv4 `sockaddr_in` and pipe helpers; raw fd helpers
   (`openat`, `close`, `eventfd`, `read`, `write`, `getsockname`, `pipe2`).
+- C vs Dart benchmark suite using raw-syscall C and
+  [`benchmark_test`](https://pub.dev/packages/benchmark_test).
 
 ## Requirements
 
@@ -124,6 +128,10 @@ timeout/cancel/poll, multishot and error-path coverage.
   typed data is not exposed to the kernel.
 - x86_64 relies on TSO for ring publication; aarch64 uses `libatomic` fences
   with an uncontended-pthread fallback.
+- Hot-path optimizations: SQE zeroing uses eight 64-bit stores, SQE Struct
+  views are cached per slot, x86_64 skips barrier FFI calls (TSO), redundant
+  CQ-head stores are removed, and `reapCqes` copies raw CQEs without allocating
+  one Dart object per completion.
 - `close()` must only be called after all in-flight operations have completed.
 
 ## Development
@@ -149,13 +157,23 @@ dart compile exe benchmark/run.dart -o build/io_uring_benchmark
 ./build/io_uring_benchmark 100000
 ```
 
-The benchmark emits one JSON object (NOP throughput, QD1 NOP latency, and QD1
-file-read throughput).
+C vs Dart comparison (native C uses raw io_uring syscalls, no liburing; Dart
+uses `benchmark_test` with AOT):
+
+```bash
+dart run benchmark/compare.dart
+dart run benchmark/compare.dart --json   # pure JSON on stdout
+```
+
+It builds `benchmark/c/io_uring_bench.c`, runs it, runs
+`benchmark/dart_io_uring_benchmark_test.dart`, prints a Markdown table, and
+writes `build/benchmark_compare.json`. See `benchmark/README.md` for details.
 
 CI runs `analyze` + `test` on `x86_64` and `aarch64`, builds the example and
-benchmark with AOT, runs the benchmark, writes its JSON to the job summary, and
-uploads the example binary plus benchmark results as artifacts. There is no
-release/publish job.
+benchmark with AOT, runs the quick benchmark, writes its JSON to the job
+summary, and uploads the example binary plus benchmark results as artifacts.
+There is no release/publish job. The C/Dart comparison is currently a local
+tool; a Benchmark GitHub Action will be wired separately.
 
 ## License
 

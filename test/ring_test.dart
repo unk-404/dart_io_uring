@@ -174,4 +174,27 @@ void main() {
       ring.close();
     }
   });
+
+  test('reapCqes copies raw CQEs without allocating', () {
+    final ring = IoUring(entries: 8);
+    final raw = UringBuffer.allocate(4 * 16);
+    try {
+      for (var i = 0; i < 4; i++) {
+        ring.push(const NopOp(), userData: 100 + i);
+      }
+      ring.submitAndWait(4);
+      expect(ring.reapCqes(raw.pointer, 4), 4);
+
+      final words = raw.pointer.cast<Uint64>();
+      final values = raw.pointer.cast<Int32>();
+      for (var i = 0; i < 4; i++) {
+        expect((words + i * 2).value, 100 + i);
+        expect((values + i * 4 + 2).value, 0); // res at byte offset 8
+      }
+      expect(ring.nextCqe(), isNull);
+    } finally {
+      ring.close();
+      raw.dispose();
+    }
+  });
 }

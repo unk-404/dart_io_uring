@@ -12,7 +12,7 @@ import '../ring/sqe.dart';
 abstract interface class UringOp {
   int get opcode;
 
-  void prepare(Pointer<IoUringSqe> sqe);
+  void prepare(IoUringSqe sqe);
 }
 
 void _setFd(IoUringSqe sqe, int fd, bool fixed) {
@@ -30,8 +30,8 @@ final class NopOp implements UringOp {
   int get opcode => IoUringOpcode.nop;
 
   @override
-  void prepare(Pointer<IoUringSqe> sqe) {
-    sqe.ref.fd = -1;
+  void prepare(IoUringSqe sqe) {
+    sqe.fd = -1;
   }
 }
 
@@ -59,8 +59,8 @@ final class ReadOp implements UringOp {
   int get opcode => IoUringOpcode.read;
 
   @override
-  void prepare(Pointer<IoUringSqe> sqe) {
-    final entry = sqe.ref;
+  void prepare(IoUringSqe sqe) {
+    final entry = sqe;
     _setFd(entry, fd, fixedFile);
     entry
       ..addr = buffer.address
@@ -92,8 +92,8 @@ final class WriteOp implements UringOp {
   int get opcode => IoUringOpcode.write;
 
   @override
-  void prepare(Pointer<IoUringSqe> sqe) {
-    final entry = sqe.ref;
+  void prepare(IoUringSqe sqe) {
+    final entry = sqe;
     _setFd(entry, fd, fixedFile);
     entry
       ..addr = buffer.address
@@ -115,8 +115,8 @@ final class FsyncOp implements UringOp {
   int get opcode => IoUringOpcode.fsync;
 
   @override
-  void prepare(Pointer<IoUringSqe> sqe) {
-    final entry = sqe.ref;
+  void prepare(IoUringSqe sqe) {
+    final entry = sqe;
     _setFd(entry, fd, fixedFile);
     entry.opFlags = flags;
   }
@@ -146,8 +146,8 @@ final class ReadFixedOp implements UringOp {
   int get opcode => IoUringOpcode.readFixed;
 
   @override
-  void prepare(Pointer<IoUringSqe> sqe) {
-    final entry = sqe.ref;
+  void prepare(IoUringSqe sqe) {
+    final entry = sqe;
     _setFd(entry, fd, fixedFile);
     entry
       ..addr = buffer.address
@@ -182,8 +182,8 @@ final class WriteFixedOp implements UringOp {
   int get opcode => IoUringOpcode.writeFixed;
 
   @override
-  void prepare(Pointer<IoUringSqe> sqe) {
-    final entry = sqe.ref;
+  void prepare(IoUringSqe sqe) {
+    final entry = sqe;
     _setFd(entry, fd, fixedFile);
     entry
       ..addr = buffer.address
@@ -216,8 +216,8 @@ final class OpenAtOp implements UringOp {
   int get opcode => IoUringOpcode.openat;
 
   @override
-  void prepare(Pointer<IoUringSqe> sqe) {
-    final entry = sqe.ref;
+  void prepare(IoUringSqe sqe) {
+    final entry = sqe;
     _setFd(entry, dirFd, fixedDirFd);
     entry
       ..addr = path.pointer.address
@@ -237,8 +237,8 @@ final class CloseOp implements UringOp {
   int get opcode => IoUringOpcode.close;
 
   @override
-  void prepare(Pointer<IoUringSqe> sqe) {
-    final entry = sqe.ref;
+  void prepare(IoUringSqe sqe) {
+    final entry = sqe;
     if (fixedFile) {
       entry
         ..fd = 0
@@ -274,8 +274,8 @@ final class StatxOp implements UringOp {
   int get opcode => IoUringOpcode.statx;
 
   @override
-  void prepare(Pointer<IoUringSqe> sqe) {
-    final entry = sqe.ref;
+  void prepare(IoUringSqe sqe) {
+    final entry = sqe;
     _setFd(entry, dirFd, fixedDirFd);
     entry
       ..addr = path.pointer.address
@@ -307,8 +307,8 @@ final class ReadvOp implements UringOp {
   int get opcode => IoUringOpcode.readv;
 
   @override
-  void prepare(Pointer<IoUringSqe> sqe) {
-    final entry = sqe.ref;
+  void prepare(IoUringSqe sqe) {
+    final entry = sqe;
     _setFd(entry, fd, fixedFile);
     entry
       ..addr = iovecs.pointer.address
@@ -338,8 +338,8 @@ final class WritevOp implements UringOp {
   int get opcode => IoUringOpcode.writev;
 
   @override
-  void prepare(Pointer<IoUringSqe> sqe) {
-    final entry = sqe.ref;
+  void prepare(IoUringSqe sqe) {
+    final entry = sqe;
     _setFd(entry, fd, fixedFile);
     entry
       ..addr = iovecs.pointer.address
@@ -365,8 +365,8 @@ final class FtruncateOp implements UringOp {
   int get opcode => IoUringOpcode.ftruncate;
 
   @override
-  void prepare(Pointer<IoUringSqe> sqe) {
-    final entry = sqe.ref;
+  void prepare(IoUringSqe sqe) {
+    final entry = sqe;
     _setFd(entry, fd, fixedFile);
     entry.off = length;
   }
@@ -392,8 +392,8 @@ final class FallocateOp implements UringOp {
   int get opcode => IoUringOpcode.fallocate;
 
   @override
-  void prepare(Pointer<IoUringSqe> sqe) {
-    final entry = sqe.ref;
+  void prepare(IoUringSqe sqe) {
+    final entry = sqe;
     _setFd(entry, fd, fixedFile);
     entry
       ..addr = length
@@ -418,8 +418,8 @@ final class SocketOp implements UringOp {
   int get opcode => IoUringOpcode.socket;
 
   @override
-  void prepare(Pointer<IoUringSqe> sqe) {
-    sqe.ref
+  void prepare(IoUringSqe sqe) {
+    sqe
       ..fd = domain
       ..off = type
       ..len = protocol;
@@ -444,8 +444,8 @@ final class BindOp implements UringOp {
   int get opcode => IoUringOpcode.bind;
 
   @override
-  void prepare(Pointer<IoUringSqe> sqe) {
-    final entry = sqe.ref;
+  void prepare(IoUringSqe sqe) {
+    final entry = sqe;
     _setFd(entry, fd, fixedFile);
     entry
       ..addr = sockaddr.address
@@ -469,8 +469,8 @@ final class ListenOp implements UringOp {
   int get opcode => IoUringOpcode.listen;
 
   @override
-  void prepare(Pointer<IoUringSqe> sqe) {
-    final entry = sqe.ref;
+  void prepare(IoUringSqe sqe) {
+    final entry = sqe;
     _setFd(entry, fd, fixedFile);
     entry.len = backlog;
   }
@@ -501,8 +501,8 @@ final class AcceptOp implements UringOp {
   int get opcode => IoUringOpcode.accept;
 
   @override
-  void prepare(Pointer<IoUringSqe> sqe) {
-    final entry = sqe.ref;
+  void prepare(IoUringSqe sqe) {
+    final entry = sqe;
     _setFd(entry, fd, fixedFile);
     entry
       ..addr = addr?.address ?? 0
@@ -529,8 +529,8 @@ final class ConnectOp implements UringOp {
   int get opcode => IoUringOpcode.connect;
 
   @override
-  void prepare(Pointer<IoUringSqe> sqe) {
-    final entry = sqe.ref;
+  void prepare(IoUringSqe sqe) {
+    final entry = sqe;
     _setFd(entry, fd, fixedFile);
     entry
       ..addr = sockaddr.address
@@ -558,8 +558,8 @@ final class SendOp implements UringOp {
   int get opcode => IoUringOpcode.send;
 
   @override
-  void prepare(Pointer<IoUringSqe> sqe) {
-    final entry = sqe.ref;
+  void prepare(IoUringSqe sqe) {
+    final entry = sqe;
     _setFd(entry, fd, fixedFile);
     entry
       ..addr = buffer.address
@@ -588,8 +588,8 @@ final class RecvOp implements UringOp {
   int get opcode => IoUringOpcode.recv;
 
   @override
-  void prepare(Pointer<IoUringSqe> sqe) {
-    final entry = sqe.ref;
+  void prepare(IoUringSqe sqe) {
+    final entry = sqe;
     _setFd(entry, fd, fixedFile);
     entry
       ..addr = buffer.address
@@ -614,8 +614,8 @@ final class ShutdownOp implements UringOp {
   int get opcode => IoUringOpcode.shutdown;
 
   @override
-  void prepare(Pointer<IoUringSqe> sqe) {
-    final entry = sqe.ref;
+  void prepare(IoUringSqe sqe) {
+    final entry = sqe;
     _setFd(entry, fd, fixedFile);
     entry.len = how;
   }
@@ -649,8 +649,8 @@ final class SpliceOp implements UringOp {
   int get opcode => IoUringOpcode.splice;
 
   @override
-  void prepare(Pointer<IoUringSqe> sqe) {
-    final entry = sqe.ref;
+  void prepare(IoUringSqe sqe) {
+    final entry = sqe;
     _setFd(entry, fdOut, fixedOut);
     entry
       ..spliceFdIn = fdIn
@@ -683,8 +683,8 @@ final class TeeOp implements UringOp {
   int get opcode => IoUringOpcode.tee;
 
   @override
-  void prepare(Pointer<IoUringSqe> sqe) {
-    final entry = sqe.ref;
+  void prepare(IoUringSqe sqe) {
+    final entry = sqe;
     _setFd(entry, fdOut, fixedOut);
     entry
       ..spliceFdIn = fdIn
@@ -711,8 +711,8 @@ final class PollAddOp implements UringOp {
   int get opcode => IoUringOpcode.pollAdd;
 
   @override
-  void prepare(Pointer<IoUringSqe> sqe) {
-    final entry = sqe.ref;
+  void prepare(IoUringSqe sqe) {
+    final entry = sqe;
     _setFd(entry, fd, fixedFile);
     entry.opFlags = events;
     if (multi) {
@@ -731,8 +731,8 @@ final class PollRemoveOp implements UringOp {
   int get opcode => IoUringOpcode.pollRemove;
 
   @override
-  void prepare(Pointer<IoUringSqe> sqe) {
-    sqe.ref
+  void prepare(IoUringSqe sqe) {
+    sqe
       ..fd = -1
       ..addr = userData;
   }
@@ -752,8 +752,8 @@ final class TimeoutOp implements UringOp {
   int get opcode => IoUringOpcode.timeout;
 
   @override
-  void prepare(Pointer<IoUringSqe> sqe) {
-    sqe.ref
+  void prepare(IoUringSqe sqe) {
+    sqe
       ..fd = -1
       ..addr = timespec.pointer.address
       ..len = 1
@@ -773,8 +773,8 @@ final class TimeoutRemoveOp implements UringOp {
   int get opcode => IoUringOpcode.timeoutRemove;
 
   @override
-  void prepare(Pointer<IoUringSqe> sqe) {
-    sqe.ref
+  void prepare(IoUringSqe sqe) {
+    sqe
       ..fd = -1
       ..addr = userData
       ..opFlags = flags;
@@ -792,8 +792,8 @@ final class LinkTimeoutOp implements UringOp {
   int get opcode => IoUringOpcode.linkTimeout;
 
   @override
-  void prepare(Pointer<IoUringSqe> sqe) {
-    sqe.ref
+  void prepare(IoUringSqe sqe) {
+    sqe
       ..fd = -1
       ..addr = timespec.pointer.address
       ..len = 1
@@ -812,8 +812,8 @@ final class AsyncCancelOp implements UringOp {
   int get opcode => IoUringOpcode.asyncCancel;
 
   @override
-  void prepare(Pointer<IoUringSqe> sqe) {
-    sqe.ref
+  void prepare(IoUringSqe sqe) {
+    sqe
       ..fd = -1
       ..addr = userData
       ..opFlags = flags;
@@ -840,8 +840,8 @@ final class ProvideBuffersOp implements UringOp {
   int get opcode => IoUringOpcode.provideBuffers;
 
   @override
-  void prepare(Pointer<IoUringSqe> sqe) {
-    sqe.ref
+  void prepare(IoUringSqe sqe) {
+    sqe
       ..fd = count
       ..addr = buffer.address
       ..len = length
@@ -861,8 +861,8 @@ final class RemoveBuffersOp implements UringOp {
   int get opcode => IoUringOpcode.removeBuffers;
 
   @override
-  void prepare(Pointer<IoUringSqe> sqe) {
-    sqe.ref
+  void prepare(IoUringSqe sqe) {
+    sqe
       ..fd = count
       ..bufIndex = bufferGroup;
   }
@@ -888,8 +888,8 @@ final class RecvMultiOp implements UringOp {
   int get opcode => IoUringOpcode.recv;
 
   @override
-  void prepare(Pointer<IoUringSqe> sqe) {
-    final entry = sqe.ref;
+  void prepare(IoUringSqe sqe) {
+    final entry = sqe;
     _setFd(entry, fd, fixedFile);
     entry
       ..len = length
@@ -916,8 +916,8 @@ final class FilesUpdateOp implements UringOp {
   int get opcode => IoUringOpcode.filesUpdate;
 
   @override
-  void prepare(Pointer<IoUringSqe> sqe) {
-    sqe.ref
+  void prepare(IoUringSqe sqe) {
+    sqe
       ..fd = -1
       ..addr = fds.address
       ..len = count

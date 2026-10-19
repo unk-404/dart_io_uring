@@ -29,11 +29,13 @@ abstract interface class MemoryBarrier {
 }
 
 final class _X64Barrier implements MemoryBarrier {
+  // x86_64 TSO orders the ring stores/loads; the surrounding FFI calls are
+  // compiler barriers. Empty methods keep the hot path free of extra calls.
   @override
-  void acquire() => Libc.instance.compilerBarrier();
+  void acquire() {}
 
   @override
-  void release() => Libc.instance.compilerBarrier();
+  void release() {}
 }
 
 final class _AtomicBarrier implements MemoryBarrier {
