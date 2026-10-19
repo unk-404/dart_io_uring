@@ -401,3 +401,294 @@ final class FallocateOp implements UringOp {
       ..len = mode;
   }
 }
+
+/// `IORING_OP_SOCKET`: creates a socket and returns its fd in the CQE.
+final class SocketOp implements UringOp {
+  const SocketOp({
+    this.domain = SocketConstants.afInet,
+    this.type = SocketConstants.sockStream,
+    this.protocol = 0,
+  });
+
+  final int domain;
+  final int type;
+  final int protocol;
+
+  @override
+  int get opcode => IoUringOpcode.socket;
+
+  @override
+  void prepare(Pointer<IoUringSqe> sqe) {
+    sqe.ref
+      ..fd = domain
+      ..off = type
+      ..len = protocol;
+  }
+}
+
+/// `IORING_OP_BIND`.
+final class BindOp implements UringOp {
+  const BindOp({
+    required this.fd,
+    required this.sockaddr,
+    required this.addrlen,
+    this.fixedFile = false,
+  });
+
+  final int fd;
+  final Pointer<Uint8> sockaddr;
+  final int addrlen;
+  final bool fixedFile;
+
+  @override
+  int get opcode => IoUringOpcode.bind;
+
+  @override
+  void prepare(Pointer<IoUringSqe> sqe) {
+    final entry = sqe.ref;
+    _setFd(entry, fd, fixedFile);
+    entry
+      ..addr = sockaddr.address
+      ..off = addrlen;
+  }
+}
+
+/// `IORING_OP_LISTEN`.
+final class ListenOp implements UringOp {
+  const ListenOp({
+    required this.fd,
+    this.backlog = 128,
+    this.fixedFile = false,
+  });
+
+  final int fd;
+  final int backlog;
+  final bool fixedFile;
+
+  @override
+  int get opcode => IoUringOpcode.listen;
+
+  @override
+  void prepare(Pointer<IoUringSqe> sqe) {
+    final entry = sqe.ref;
+    _setFd(entry, fd, fixedFile);
+    entry.len = backlog;
+  }
+}
+
+/// `IORING_OP_ACCEPT`.
+final class AcceptOp implements UringOp {
+  const AcceptOp({
+    required this.fd,
+    this.addr,
+    this.addrLen,
+    this.flags = 0,
+    this.fixedFile = false,
+  });
+
+  final int fd;
+
+  /// Optional `struct sockaddr` output buffer.
+  final Pointer<Uint8>? addr;
+
+  /// Optional `socklen_t` input/output buffer.
+  final Pointer<Uint32>? addrLen;
+
+  final int flags;
+  final bool fixedFile;
+
+  @override
+  int get opcode => IoUringOpcode.accept;
+
+  @override
+  void prepare(Pointer<IoUringSqe> sqe) {
+    final entry = sqe.ref;
+    _setFd(entry, fd, fixedFile);
+    entry
+      ..addr = addr?.address ?? 0
+      ..off = addrLen?.address ?? 0
+      ..opFlags = flags;
+  }
+}
+
+/// `IORING_OP_CONNECT`.
+final class ConnectOp implements UringOp {
+  const ConnectOp({
+    required this.fd,
+    required this.sockaddr,
+    required this.addrlen,
+    this.fixedFile = false,
+  });
+
+  final int fd;
+  final Pointer<Uint8> sockaddr;
+  final int addrlen;
+  final bool fixedFile;
+
+  @override
+  int get opcode => IoUringOpcode.connect;
+
+  @override
+  void prepare(Pointer<IoUringSqe> sqe) {
+    final entry = sqe.ref;
+    _setFd(entry, fd, fixedFile);
+    entry
+      ..addr = sockaddr.address
+      ..off = addrlen;
+  }
+}
+
+/// `IORING_OP_SEND`.
+final class SendOp implements UringOp {
+  const SendOp({
+    required this.fd,
+    required this.buffer,
+    required this.length,
+    this.flags = 0,
+    this.fixedFile = false,
+  });
+
+  final int fd;
+  final Pointer<Uint8> buffer;
+  final int length;
+  final int flags;
+  final bool fixedFile;
+
+  @override
+  int get opcode => IoUringOpcode.send;
+
+  @override
+  void prepare(Pointer<IoUringSqe> sqe) {
+    final entry = sqe.ref;
+    _setFd(entry, fd, fixedFile);
+    entry
+      ..addr = buffer.address
+      ..len = length
+      ..opFlags = flags;
+  }
+}
+
+/// `IORING_OP_RECV`.
+final class RecvOp implements UringOp {
+  const RecvOp({
+    required this.fd,
+    required this.buffer,
+    required this.length,
+    this.flags = 0,
+    this.fixedFile = false,
+  });
+
+  final int fd;
+  final Pointer<Uint8> buffer;
+  final int length;
+  final int flags;
+  final bool fixedFile;
+
+  @override
+  int get opcode => IoUringOpcode.recv;
+
+  @override
+  void prepare(Pointer<IoUringSqe> sqe) {
+    final entry = sqe.ref;
+    _setFd(entry, fd, fixedFile);
+    entry
+      ..addr = buffer.address
+      ..len = length
+      ..opFlags = flags;
+  }
+}
+
+/// `IORING_OP_SHUTDOWN`.
+final class ShutdownOp implements UringOp {
+  const ShutdownOp({
+    required this.fd,
+    this.how = SocketConstants.shutRdWr,
+    this.fixedFile = false,
+  });
+
+  final int fd;
+  final int how;
+  final bool fixedFile;
+
+  @override
+  int get opcode => IoUringOpcode.shutdown;
+
+  @override
+  void prepare(Pointer<IoUringSqe> sqe) {
+    final entry = sqe.ref;
+    _setFd(entry, fd, fixedFile);
+    entry.len = how;
+  }
+}
+
+/// `IORING_OP_SPLICE`.
+///
+/// [offIn] / [offOut] use `-1` for the current file position.
+final class SpliceOp implements UringOp {
+  const SpliceOp({
+    required this.fdIn,
+    this.offIn = -1,
+    required this.fdOut,
+    this.offOut = -1,
+    required this.length,
+    this.flags = 0,
+    this.fixedIn = false,
+    this.fixedOut = false,
+  });
+
+  final int fdIn;
+  final int offIn;
+  final int fdOut;
+  final int offOut;
+  final int length;
+  final int flags;
+  final bool fixedIn;
+  final bool fixedOut;
+
+  @override
+  int get opcode => IoUringOpcode.splice;
+
+  @override
+  void prepare(Pointer<IoUringSqe> sqe) {
+    final entry = sqe.ref;
+    _setFd(entry, fdOut, fixedOut);
+    entry
+      ..spliceFdIn = fdIn
+      ..addr = offIn
+      ..off = offOut
+      ..len = length
+      ..opFlags = flags | (fixedIn ? SpliceFlags.fdInFixed : 0);
+  }
+}
+
+/// `IORING_OP_TEE`.
+final class TeeOp implements UringOp {
+  const TeeOp({
+    required this.fdIn,
+    required this.fdOut,
+    required this.length,
+    this.flags = 0,
+    this.fixedIn = false,
+    this.fixedOut = false,
+  });
+
+  final int fdIn;
+  final int fdOut;
+  final int length;
+  final int flags;
+  final bool fixedIn;
+  final bool fixedOut;
+
+  @override
+  int get opcode => IoUringOpcode.tee;
+
+  @override
+  void prepare(Pointer<IoUringSqe> sqe) {
+    final entry = sqe.ref;
+    _setFd(entry, fdOut, fixedOut);
+    entry
+      ..spliceFdIn = fdIn
+      ..len = length
+      ..opFlags = flags | (fixedIn ? SpliceFlags.fdInFixed : 0);
+  }
+}

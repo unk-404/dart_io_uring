@@ -186,6 +186,27 @@ abstract final class IoUringRegisterOpcode {
   static const int probe = 8;
 }
 
+/// Socket constants needed by the network operations.
+abstract final class SocketConstants {
+  static const int afInet = 2;
+  static const int afInet6 = 10;
+
+  static const int sockStream = 1;
+  static const int sockDgram = 2;
+
+  static const int ipprotoTcp = 6;
+
+  static const int shutRd = 0;
+  static const int shutWr = 1;
+  static const int shutRdWr = 2;
+}
+
+/// Flags for `IORING_OP_SPLICE` / `IORING_OP_TEE`.
+abstract final class SpliceFlags {
+  /// `fd_in` is an index into the registered-file table.
+  static const int fdInFixed = 0x80000000;
+}
+
 /// Minimal POSIX constants needed by the raw-fd layer.
 abstract final class PosixConstants {
   static const int atFdCwd = -100;

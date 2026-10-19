@@ -3,6 +3,9 @@
 - Initial implementation: ring setup/teardown, SQ/CQ submission, NOP/READ/
   WRITE/FSYNC, OPENAT/CLOSE/STATX/READV/WRITEV/FTRUNCATE/FALLOCATE.
 - Registered buffers, registered files, eventfd registration and kernel probe.
+- Network operations: SOCKET/BIND/LISTEN/ACCEPT/CONNECT/SEND/RECV/SHUTDOWN,
+  with a loopback TCP echo test and example.
+- SPLICE/TEE with pipe helpers and tests.
 - Native buffers, raw-fd helpers (`openat`/`close`/`eventfd`/`read`), and a
   small memory-barrier abstraction.
 - x86_64 support; aarch64 ring publication uses libatomic fences with a

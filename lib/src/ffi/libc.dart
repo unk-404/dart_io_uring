@@ -59,6 +59,19 @@ typedef _EventfdDart = int Function(int, int);
 typedef _ReadNative = IntPtr Function(Int32, Pointer<Uint8>, IntPtr);
 typedef _ReadDart = int Function(int, Pointer<Uint8>, int);
 
+typedef _GetSockNameNative = Int32 Function(
+  Int32,
+  Pointer<Uint8>,
+  Pointer<Uint32>,
+);
+typedef _GetSockNameDart = int Function(int, Pointer<Uint8>, Pointer<Uint32>);
+
+typedef _Pipe2Native = Int32 Function(Pointer<Int32>, Int32);
+typedef _Pipe2Dart = int Function(Pointer<Int32>, int);
+
+typedef _WriteNative = IntPtr Function(Int32, Pointer<Uint8>, IntPtr);
+typedef _WriteDart = int Function(int, Pointer<Uint8>, int);
+
 /// Thin, lazy bindings to the handful of libc symbols io_uring needs.
 ///
 /// No native code is compiled or linked by this package; [DynamicLibrary.process]
@@ -105,6 +118,12 @@ final class Libc {
   late final _ReadDart _read = _library.lookupFunction<_ReadNative, _ReadDart>(
     'read',
   );
+  late final _GetSockNameDart _getsockname = _library
+      .lookupFunction<_GetSockNameNative, _GetSockNameDart>('getsockname');
+  late final _Pipe2Dart _pipe2 = _library
+      .lookupFunction<_Pipe2Native, _Pipe2Dart>('pipe2');
+  late final _WriteDart _write = _library
+      .lookupFunction<_WriteNative, _WriteDart>('write');
 
   _ErrnoLocationDart _lookupErrnoLocation() {
     return _library.lookupFunction<_ErrnoLocationNative, _ErrnoLocationDart>(
@@ -145,6 +164,14 @@ final class Libc {
 
   int read(int fd, Pointer<Uint8> buffer, int count) =>
       _read(fd, buffer, count);
+
+  int getsockname(int fd, Pointer<Uint8> address, Pointer<Uint32> length) =>
+      _getsockname(fd, address, length);
+
+  int pipe2(Pointer<Int32> fds, int flags) => _pipe2(fds, flags);
+
+  int write(int fd, Pointer<Uint8> buffer, int count) =>
+      _write(fd, buffer, count);
 
   Pointer<Int32> errnoLocation() => _errnoLocation();
 

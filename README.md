@@ -12,17 +12,20 @@ rings over raw syscalls via `dart:ffi`. No C sources, no native build step, no
 - Batch submission, blocking wait, non-blocking completion polling.
 - Typed operations: `NOP`, `READ`, `WRITE`, `FSYNC`, `OPENAT`, `CLOSE`,
   `STATX`, `READV`, `WRITEV`, `READ_FIXED`, `WRITE_FIXED`, `FTRUNCATE`,
-  `FALLOCATE`.
+  `FALLOCATE`, `SOCKET`, `BIND`, `LISTEN`, `ACCEPT`, `CONNECT`, `SEND`, `RECV`,
+  `SHUTDOWN`, `SPLICE`, `TEE`.
 - Registered buffers, registered files, and eventfd notification.
 - Kernel probe (`IORING_REGISTER_PROBE`) for per-op support checks.
-- Native buffer and `iovec` helpers; raw fd helpers (`openat`, `close`,
-  `eventfd`, `read`).
+- Native buffer, `iovec`, IPv4 `sockaddr_in` and pipe helpers; raw fd helpers
+  (`openat`, `close`, `eventfd`, `read`, `write`, `getsockname`, `pipe2`).
 
 ## Requirements
 
-- Linux. `x86_64` is the locally validated target; `aarch64` is exercised by
-  CI and uses `libatomic` fences with a pthread fallback.
-- Kernel 5.1+ (5.6+ for `IORING_OP_READ`/`WRITE`).
+- Linux. `x86_64` and `aarch64` are both validated in CI; `aarch64` ring
+  publication uses `libatomic` fences with a pthread fallback.
+- Kernel 5.1+. `READ`/`WRITE` need 5.6+; the network set
+  (`SOCKET`/`BIND`/`LISTEN`/`ACCEPT`/`CONNECT`/`SEND`/`RECV`/`SHUTDOWN`) needs
+  5.19+.
 - Dart 3.13+.
 
 ## Install
@@ -79,8 +82,10 @@ ring.submitAndWait(1);
 path.dispose();
 ```
 
-See `example/` for a complete program. See `test/` for probe, registration,
-vectored I/O, statx, fallocate and error-path coverage.
+See `example/` for complete programs, including
+[`tcp_echo.dart`](example/tcp_echo.dart) (a loopback TCP echo server). See
+`test/` for probe, registration, vectored I/O, statx, fallocate, network, pipe
+and error-path coverage.
 
 ## Design notes
 
@@ -104,6 +109,7 @@ dart pub get
 dart analyze
 dart test
 dart run example/io_uring_example.dart
+dart run example/tcp_echo.dart   # then: nc 127.0.0.1 <port>
 dart compile exe example/io_uring_example.dart -o build/io_uring_example
 ```
 

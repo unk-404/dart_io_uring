@@ -11,7 +11,9 @@ export 'src/ffi/constants.dart'
         IoUringRegisterOpcode,
         IoUringSetupFlags,
         IoUringSqeFlags,
-        PosixConstants;
+        PosixConstants,
+        SocketConstants,
+        SpliceFlags;
 export 'src/ops/op.dart';
 export 'src/os/posix.dart';
 export 'src/register/probe.dart' show IoUringProbeResult;
