@@ -1,3 +1,19 @@
+## 0.1.1
+
+- `UringLoopPool` / `UringLoopLease`: exclusive, reference-counted loop leases
+  with idle-loop reuse, reaper lifecycle, close coordination, and reaper error
+  propagation.
+- `UringLoop.acquire(entries: ..., spin: ...)` convenience for short-lived
+  callers using the shared pool.
+- Optional low-latency busy-poll reaper (`spin: true`): trades a CPU core for
+  much lower async QD1 wake-up latency.
+- Async completion path uses synchronous completers and the direct `List<int>`
+  message fast path.
+- Benchmarks cover spin-mode async I/O and pool acquire/release; chart uses an
+  honest linear scale.
+- Dartdoc coverage raised above the pub.dev 20% threshold (previously 17.2%),
+  restoring the documentation score for v0.1.1.
+
 ## 0.1.0
 
 - Initial implementation: ring setup/teardown, SQ/CQ submission, NOP/READ/

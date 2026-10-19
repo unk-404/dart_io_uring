@@ -6,7 +6,7 @@ width = 920.0
 theme = "pastel"
 kaomoji = ""
 bar_scale = "row"
-bar_curve = "log"
+bar_curve = "linear"
 missing = "skip"
 
 [[series]]
@@ -23,6 +23,11 @@ color = "#61DDAA"
 label = "Dart async"
 input = "build/bench-svg/dart-async.json"
 color = "#F6BD16"
+
+[[series]]
+label = "Dart async (spin)"
+input = "build/bench-svg/dart-async-spin.json"
+color = "#E8684A"
 
 [[row]]
 id = "nop.qd1"

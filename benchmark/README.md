@@ -19,9 +19,9 @@ The comparison table reports `Dart sync raw` for batch64, which uses
 `reapCqes` instead of `waitCqe` per completion.
 
 The Dart suite additionally measures the async `UringLoop` path (owner submits,
-reaper isolate reaps) and a raw batch-reap path using `IoUring.reapCqes` (copies
-raw CQEs into a native buffer, no per-completion Dart object). The C benchmark is
-synchronous only.
+reaper isolate reaps), a busy-poll spin reaper, and a raw batch-reap path using
+`IoUring.reapCqes` (copies raw CQEs into a native buffer, no per-completion Dart
+object). The C benchmark is synchronous only.
 
 ## Hot-path notes
 
@@ -33,6 +33,9 @@ The Dart implementation was optimized for the synchronous hot path:
 - redundant CQ-head publication was removed
 - `reapCqes` allows batch reaping without allocating one completion object per
   CQE
+- `UringLoop.open(spin: true)` / `UringLoopPool(spin: true)` busy-polls the CQ
+  for lower async wake-up latency; it burns a core while idle
+- `UringLoopPool` reuses idle loops; the suite also measures acquire/release
 
 ## Run
 
@@ -78,10 +81,10 @@ dart run benchmark/render_bench_svg.dart --emit-only
 [`unk-404/benchmark_svg@master`](https://github.com/unk-404/benchmark_svg) action
 with `benchmark/bench-svg.toml`; the config defines `[[series]]`, so the action's
 optional `input` is omitted. The action installs its own binary from the action
-repository, so CI does not download or run the CLI manually. The comparison card
-uses `bar_curve = "log"` so the async QD1 bar stays visible next to the much
-larger C/Dart sync values. Use `--font-file` or `BENCH_SVG_FONT_FILE` if DejaVu
-Sans is not installed.
+repository, so CI does not download or run the CLI manually. Bars use the honest
+linear scale (`bar_curve = "linear"`); async QD1 is intentionally shown at its
+real size rather than compressed. Use `--font-file` or `BENCH_SVG_FONT_FILE` if
+DejaVu Sans is not installed.
 
 ## Notes
 

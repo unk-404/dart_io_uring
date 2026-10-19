@@ -101,6 +101,15 @@ Future<void> main(List<String> arguments) async {
     return value is num ? value.toDouble() * multiplier : double.nan;
   }
 
+  double dartLatencyUs(String suffix) {
+    final result = findBySuffix(suffix);
+    if (result == null) return double.nan;
+    final latency = result['latency'];
+    if (latency is! Map) return double.nan;
+    final value = latency['mean'];
+    return value is num ? value.toDouble() : double.nan;
+  }
+
   double cOps(String scenario, String field) {
     final result = cResult[scenario];
     if (result is! Map) return double.nan;
@@ -116,6 +125,7 @@ Future<void> main(List<String> arguments) async {
       (dartOps('nop_qd1_sync') / 1e6).toStringAsFixed(2),
       'n/a',
       (dartOps('nop_qd1_async') / 1e6).toStringAsFixed(2),
+      (dartOps('nop_qd1_async_spin') / 1e6).toStringAsFixed(2),
     ],
     [
       'NOP batch64 (Mops/s)',
@@ -125,6 +135,9 @@ Future<void> main(List<String> arguments) async {
         2,
       ),
       (dartOps('nop_batch64_async', multiplier: 64) / 1e6).toStringAsFixed(2),
+      (dartOps('nop_batch64_async_spin', multiplier: 64) / 1e6).toStringAsFixed(
+        2,
+      ),
     ],
     [
       '4K read QD1 (MiB/s)',
@@ -132,6 +145,7 @@ Future<void> main(List<String> arguments) async {
       (dartOps('read_4k_qd1_sync') * 4096 / mib).toStringAsFixed(2),
       'n/a',
       (dartOps('read_4k_qd1_async') * 4096 / mib).toStringAsFixed(2),
+      (dartOps('read_4k_qd1_async_spin') * 4096 / mib).toStringAsFixed(2),
     ],
   ];
 
@@ -140,17 +154,24 @@ Future<void> main(List<String> arguments) async {
       'c': cOps('nopQd1', 'opsPerSec'),
       'dartSync': dartOps('nop_qd1_sync'),
       'dartAsync': dartOps('nop_qd1_async'),
+      'dartAsyncSpin': dartOps('nop_qd1_async_spin'),
     },
     'nopBatch64': {
       'c': cOps('nopBatch64', 'opsPerSec'),
       'dartSync': dartOps('nop_batch64_sync', multiplier: 64),
       'dartSyncRaw': dartOps('nop_batch64_sync_raw', multiplier: 64),
       'dartAsync': dartOps('nop_batch64_async', multiplier: 64),
+      'dartAsyncSpin': dartOps('nop_batch64_async_spin', multiplier: 64),
     },
     'fileRead4kQd1': {
       'cMiBPerSec': cOps('fileRead4kQd1', 'mibPerSec'),
       'dartSyncMiBPerSec': dartOps('read_4k_qd1_sync') * 4096 / mib,
       'dartAsyncMiBPerSec': dartOps('read_4k_qd1_async') * 4096 / mib,
+      'dartAsyncSpinMiBPerSec': dartOps('read_4k_qd1_async_spin') * 4096 / mib,
+    },
+    'loopPoolAcquireRelease': {
+      'opsPerSec': dartOps('loop_pool_acquire_release'),
+      'latencyUs': dartLatencyUs('loop_pool_acquire_release'),
     },
   };
 
@@ -170,19 +191,30 @@ Future<void> main(List<String> arguments) async {
 
   stdout
     ..writeln()
-    ..writeln('| Scenario | C | Dart sync | Dart sync raw | Dart async |')
-    ..writeln('|---|---:|---:|---:|---:|');
+    ..writeln(
+      '| Scenario | C | Dart sync | Dart sync raw | Dart async | Dart async spin |',
+    )
+    ..writeln('|---|---:|---:|---:|---:|---:|');
   for (final row in rows) {
     stdout.writeln(
-      '| ${row[0]} | ${row[1]} | ${row[2]} | ${row[3]} | ${row[4]} |',
+      '| ${row[0]} | ${row[1]} | ${row[2]} | ${row[3]} | ${row[4]} | ${row[5]} |',
     );
   }
+  final poolLatency = dartLatencyUs('loop_pool_acquire_release');
   stdout
     ..writeln()
     ..writeln('C: raw io_uring syscalls, no liburing.')
     ..writeln('Dart: benchmark_test, AOT, io_uring package.')
     ..writeln(
       'Dart sync raw: batch64 reaped with reapCqes (no per-CQE object).',
+    )
+    ..writeln(
+      'Dart async spin: busy-poll reaper (lower latency, burns a core).',
+    )
+    ..writeln(
+      poolLatency.isNaN
+          ? 'Dart pool acquire/release: n/a'
+          : 'Dart pool acquire/release: ${poolLatency.toStringAsFixed(3)} us/op',
     )
     ..writeln('Results: build/benchmark_compare.json');
 }

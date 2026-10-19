@@ -93,8 +93,21 @@ Future<void> main(List<String> arguments) async {
       ),
     ),
   );
+  File('${directory.path}/dart-async-spin.json').writeAsStringSync(
+    const JsonEncoder.withIndent('  ').convert(
+      _report(
+        tool: 'io_uring Dart (async, spin)',
+        arch: arch,
+        nopQd1: value('nopQd1', 'dartAsyncSpin'),
+        nopBatch64: value('nopBatch64', 'dartAsyncSpin'),
+        readMib: value('fileRead4kQd1', 'dartAsyncSpinMiBPerSec'),
+      ),
+    ),
+  );
 
-  stderr.writeln('==> wrote ${directory.path}/{c,dart-sync,dart-async}.json');
+  stderr.writeln(
+    '==> wrote ${directory.path}/{c,dart-sync,dart-async,dart-async-spin}.json',
+  );
   if (emitOnly) {
     stdout.writeln(directory.path);
     return;

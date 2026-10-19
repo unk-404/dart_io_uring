@@ -16,6 +16,7 @@ void main() {
   group('io_uring_dart', () {
     late IoUring syncRing;
     late UringLoop loop;
+    late UringLoopPool pool;
     late Directory directory;
     late File file;
     late int fd;
@@ -26,6 +27,9 @@ void main() {
     setUpAll(() async {
       syncRing = IoUring(entries: 256);
       loop = await UringLoop.open(entries: 256);
+      pool = UringLoopPool(entries: 256);
+      final warmLease = await pool.acquire();
+      await warmLease.release();
       directory = Directory.systemTemp.createTempSync('io_uring_bench_dart_');
       file = File('${directory.path}/data.bin')
         ..writeAsBytesSync(List<int>.filled(1024 * 1024, 0x41));
@@ -35,6 +39,7 @@ void main() {
     });
 
     tearDownAll(() async {
+      await pool.close();
       await loop.close();
       syncRing.close();
       rawCqes.dispose();
@@ -145,6 +150,90 @@ void main() {
       () async {
         readOffset = (readOffset + 4096) % (1024 * 1024);
         final cqe = await loop.run(
+          ReadOp(
+            fd: fd,
+            buffer: buffer.pointer,
+            length: 4096,
+            offset: readOffset,
+          ),
+        );
+        if (cqe.isError) {
+          throw StateError('READ failed: ${cqe.errno}');
+        }
+      },
+      minDuration: const Duration(seconds: 1),
+      warmupMinSamples: 2,
+    );
+
+    benchmark(
+      'loop_pool_acquire_release',
+      () async {
+        final lease = await pool.acquire();
+        await lease.release();
+      },
+      minDuration: const Duration(seconds: 1),
+      warmupMinSamples: 2,
+    );
+  });
+
+  group('io_uring_dart_spin', () {
+    late UringLoop spinLoop;
+    late Directory directory;
+    late File file;
+    late int fd;
+    late UringBuffer buffer;
+    var readOffset = 0;
+
+    setUpAll(() async {
+      spinLoop = await UringLoop.open(entries: 256, spin: true);
+      directory = Directory.systemTemp.createTempSync('io_uring_bench_spin_');
+      file = File('${directory.path}/data.bin')
+        ..writeAsBytesSync(List<int>.filled(1024 * 1024, 0x41));
+      fd = Posix.open(file.path);
+      buffer = UringBuffer.allocate(4096);
+    });
+
+    tearDownAll(() async {
+      await spinLoop.close();
+      buffer.dispose();
+      Posix.close(fd);
+      directory.deleteSync(recursive: true);
+    });
+
+    benchmark(
+      'nop_qd1_async_spin',
+      () async {
+        final cqe = await spinLoop.run(const NopOp());
+        if (cqe.isError) {
+          throw StateError('NOP failed: ${cqe.errno}');
+        }
+      },
+      minDuration: const Duration(seconds: 1),
+      warmupMinSamples: 2,
+    );
+
+    benchmark(
+      'nop_batch64_async_spin',
+      () async {
+        final futures = spinLoop.runAll(
+          List<UringOp>.filled(64, const NopOp()),
+        );
+        final completions = await Future.wait(futures);
+        for (final cqe in completions) {
+          if (cqe.isError) {
+            throw StateError('NOP failed: ${cqe.errno}');
+          }
+        }
+      },
+      minDuration: const Duration(seconds: 1),
+      warmupMinSamples: 2,
+    );
+
+    benchmark(
+      'read_4k_qd1_async_spin',
+      () async {
+        readOffset = (readOffset + 4096) % (1024 * 1024);
+        final cqe = await spinLoop.run(
           ReadOp(
             fd: fd,
             buffer: buffer.pointer,

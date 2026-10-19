@@ -25,6 +25,11 @@ comparison benchmark.
 - Registered-file updates and provided-buffer rings (`UringBufRing`).
 - `UringLoop`: Future-based API with an owner/reaper isolate pair; the owner
   submits directly and a reaper isolate blocks in `io_uring_enter`.
+- `UringLoopPool` / `UringLoopLease`: exclusive, reference-counted loop leases
+  with idle-loop reuse and coordinated close; `UringLoop.acquire()` is the
+  short-lived convenience API.
+- Optional spin-mode reaper (`spin: true`): busy-polls the CQ for much lower
+  async QD1 wake-up latency at the cost of a CPU core while idle.
 - Kernel probe (`IORING_REGISTER_PROBE`) for per-op support checks.
 - Native buffer, `iovec`, IPv4 `sockaddr_in` and pipe helpers; raw fd helpers
   (`openat`, `close`, `eventfd`, `read`, `write`, `getsockname`, `pipe2`).
@@ -44,7 +49,7 @@ comparison benchmark.
 
 ```yaml
 dependencies:
-  io_uring: ^0.1.0
+  io_uring: ^0.1.1
 ```
 
 ## Usage
@@ -98,6 +103,26 @@ The owner isolate submits directly; a reaper isolate blocks in
 `io_uring_enter(GETEVENTS)` and returns CQEs. Do not call `waitCqe`/`nextCqe`
 on `loop.ring`; use `loop.run` / `loop.runAll`.
 
+Short-lived callers can lease a pooled loop instead of creating a ring every
+time:
+
+```dart
+final lease = await UringLoop.acquire(entries: 256);
+try {
+  final cqe = await lease.loop.run(const NopOp());
+  // ...
+} finally {
+  await lease.release();
+}
+await UringLoopPool.shared(entries: 256).close();
+```
+
+Leases are exclusive and reference-counted. `release()` returns the loop to the
+pool; `UringLoopPool.close()` stops new leases and closes idle loops, waiting for
+active leases. Use `UringLoop.open(..., spin: true)` or
+`UringLoopPool(..., spin: true)` when QD1 latency matters more than a CPU core:
+the reaper busy-polls the CQ instead of blocking in the kernel.
+
 Opening files through the ring:
 
 ```dart
@@ -132,6 +157,12 @@ timeout/cancel/poll, multishot and error-path coverage.
   views are cached per slot, x86_64 skips barrier FFI calls (TSO), redundant
   CQ-head stores are removed, and `reapCqes` copies raw CQEs without allocating
   one Dart object per completion.
+- `UringLoopPool` reuses idle loops with exclusive leases. Registrations persist
+  on a loop across leases; the pool deliberately has no file/buffer/registration
+  policy.
+- Spin mode (`spin: true`) busy-polls the completion queue. It can cut async QD1
+  wake-up latency by roughly an order of magnitude, but it consumes a CPU core
+  while the loop is idle.
 - `close()` must only be called after all in-flight operations have completed.
 
 ## Development
@@ -144,6 +175,7 @@ dart analyze
 dart test
 dart run example/io_uring_example.dart
 dart run example/async_nop.dart
+dart run example/async_lease.dart
 dart run example/tcp_echo.dart   # then: nc 127.0.0.1 <port>
 dart compile exe example/io_uring_example.dart -o build/io_uring_example
 ```

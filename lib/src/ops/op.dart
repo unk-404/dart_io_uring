@@ -10,8 +10,10 @@ import '../ring/sqe.dart';
 /// Implementations only fill the fields they need; the SQE slot has already
 /// been zeroed and its `opcode`/`userData` set by the ring.
 abstract interface class UringOp {
+  /// Kernel `IORING_OP_*` opcode.
   int get opcode;
 
+  /// Encodes this operation into an already-zeroed SQE.
   void prepare(IoUringSqe sqe);
 }
 
@@ -37,6 +39,7 @@ final class NopOp implements UringOp {
 
 /// `IORING_OP_READ`: positional read into a native buffer.
 final class ReadOp implements UringOp {
+  /// Creates a positional read.
   const ReadOp({
     required this.fd,
     required this.buffer,
@@ -46,10 +49,19 @@ final class ReadOp implements UringOp {
     this.fixedFile = false,
   });
 
+  /// File descriptor to read from.
   final int fd;
+
+  /// Destination native buffer.
   final Pointer<Uint8> buffer;
+
+  /// Number of bytes to read.
   final int length;
+
+  /// File offset in bytes.
   final int offset;
+
+  /// `RWF_*` read flags.
   final int rwFlags;
 
   /// Whether [fd] is an index into the registered-file table.
@@ -72,6 +84,7 @@ final class ReadOp implements UringOp {
 
 /// `IORING_OP_WRITE`: positional write from a native buffer.
 final class WriteOp implements UringOp {
+  /// Creates a positional write.
   const WriteOp({
     required this.fd,
     required this.buffer,
@@ -81,11 +94,22 @@ final class WriteOp implements UringOp {
     this.fixedFile = false,
   });
 
+  /// File descriptor to write to.
   final int fd;
+
+  /// Source native buffer.
   final Pointer<Uint8> buffer;
+
+  /// Number of bytes to write.
   final int length;
+
+  /// File offset in bytes.
   final int offset;
+
+  /// `RWF_*` write flags.
   final int rwFlags;
+
+  /// Whether [fd] is an index into the registered-file table.
   final bool fixedFile;
 
   @override
@@ -105,10 +129,16 @@ final class WriteOp implements UringOp {
 
 /// `IORING_OP_FSYNC`.
 final class FsyncOp implements UringOp {
+  /// Creates an fsync/flush operation.
   const FsyncOp({required this.fd, this.flags = 0, this.fixedFile = false});
 
+  /// File descriptor to flush.
   final int fd;
+
+  /// `IORING_FSYNC_*` flags.
   final int flags;
+
+  /// Whether [fd] is a registered-file index.
   final bool fixedFile;
 
   @override
@@ -124,6 +154,7 @@ final class FsyncOp implements UringOp {
 
 /// `IORING_OP_READ_FIXED`: read into a registered buffer.
 final class ReadFixedOp implements UringOp {
+  /// Creates a registered-buffer read.
   const ReadFixedOp({
     required this.fd,
     required this.buffer,
@@ -135,11 +166,23 @@ final class ReadFixedOp implements UringOp {
   });
 
   final int fd;
+
+  /// Destination registered buffer.
   final Pointer<Uint8> buffer;
+
+  /// Number of bytes to read.
   final int length;
+
+  /// Registered buffer index.
   final int bufIndex;
+
+  /// File offset in bytes.
   final int offset;
+
+  /// `RWF_*` read flags.
   final int rwFlags;
+
+  /// Whether [fd] is a registered-file index.
   final bool fixedFile;
 
   @override
@@ -160,6 +203,7 @@ final class ReadFixedOp implements UringOp {
 
 /// `IORING_OP_WRITE_FIXED`: write from a registered buffer.
 final class WriteFixedOp implements UringOp {
+  /// Creates a registered-buffer write.
   const WriteFixedOp({
     required this.fd,
     required this.buffer,
@@ -171,11 +215,23 @@ final class WriteFixedOp implements UringOp {
   });
 
   final int fd;
+
+  /// Source registered buffer.
   final Pointer<Uint8> buffer;
+
+  /// Number of bytes to write.
   final int length;
+
+  /// Registered buffer index.
   final int bufIndex;
+
+  /// File offset in bytes.
   final int offset;
+
+  /// `RWF_*` write flags.
   final int rwFlags;
+
+  /// Whether [fd] is a registered-file index.
   final bool fixedFile;
 
   @override
@@ -198,6 +254,7 @@ final class WriteFixedOp implements UringOp {
 ///
 /// [path] must stay alive until the completion is reaped.
 final class OpenAtOp implements UringOp {
+  /// Creates an openat operation.
   const OpenAtOp({
     required this.path,
     this.dirFd = PosixConstants.atFdCwd,
@@ -206,10 +263,19 @@ final class OpenAtOp implements UringOp {
     this.fixedDirFd = false,
   });
 
+  /// NUL-terminated path to open.
   final UringPath path;
+
+  /// Directory fd, or [PosixConstants.atFdCwd].
   final int dirFd;
+
+  /// `open(2)` flags.
   final int flags;
+
+  /// Mode used with `O_CREAT`.
   final int mode;
+
+  /// Whether [dirFd] is a registered-file index.
   final bool fixedDirFd;
 
   @override
@@ -228,9 +294,13 @@ final class OpenAtOp implements UringOp {
 
 /// `IORING_OP_CLOSE`.
 final class CloseOp implements UringOp {
+  /// Creates a close operation.
   const CloseOp({required this.fd, this.fixedFile = false});
 
+  /// File descriptor to close.
   final int fd;
+
+  /// Whether [fd] is a registered-file index.
   final bool fixedFile;
 
   @override
@@ -254,6 +324,7 @@ final class CloseOp implements UringOp {
 /// [statxBuffer] must point to at least 256 bytes and stay alive until the
 /// completion is reaped.
 final class StatxOp implements UringOp {
+  /// Creates a statx operation.
   const StatxOp({
     required this.path,
     required this.statxBuffer,
@@ -263,11 +334,22 @@ final class StatxOp implements UringOp {
     this.fixedDirFd = false,
   });
 
+  /// NUL-terminated path to stat.
   final UringPath path;
+
+  /// Output buffer for `struct statx`.
   final Pointer<Uint8> statxBuffer;
+
+  /// Directory fd, or [PosixConstants.atFdCwd].
   final int dirFd;
+
+  /// `AT_STATX_*` flags.
   final int flags;
+
+  /// `STATX_*` field mask.
   final int mask;
+
+  /// Whether [dirFd] is a registered-file index.
   final bool fixedDirFd;
 
   @override
@@ -289,6 +371,7 @@ final class StatxOp implements UringOp {
 ///
 /// [iovecs] must stay alive until the completion is reaped.
 final class ReadvOp implements UringOp {
+  /// Creates a vectored read.
   const ReadvOp({
     required this.fd,
     required this.iovecs,
@@ -297,10 +380,19 @@ final class ReadvOp implements UringOp {
     this.fixedFile = false,
   });
 
+  /// File descriptor to read from.
   final int fd;
+
+  /// Destination iovec array.
   final UringIoVecList iovecs;
+
+  /// File offset in bytes.
   final int offset;
+
+  /// `RWF_*` read flags.
   final int rwFlags;
+
+  /// Whether [fd] is a registered-file index.
   final bool fixedFile;
 
   @override
@@ -320,6 +412,7 @@ final class ReadvOp implements UringOp {
 
 /// `IORING_OP_WRITEV`.
 final class WritevOp implements UringOp {
+  /// Creates a vectored write.
   const WritevOp({
     required this.fd,
     required this.iovecs,
@@ -328,10 +421,19 @@ final class WritevOp implements UringOp {
     this.fixedFile = false,
   });
 
+  /// File descriptor to write to.
   final int fd;
+
+  /// Source iovec array.
   final UringIoVecList iovecs;
+
+  /// File offset in bytes.
   final int offset;
+
+  /// `RWF_*` write flags.
   final int rwFlags;
+
+  /// Whether [fd] is a registered-file index.
   final bool fixedFile;
 
   @override
@@ -351,14 +453,20 @@ final class WritevOp implements UringOp {
 
 /// `IORING_OP_FTRUNCATE`.
 final class FtruncateOp implements UringOp {
+  /// Creates a truncate operation.
   const FtruncateOp({
     required this.fd,
     required this.length,
     this.fixedFile = false,
   });
 
+  /// File descriptor to truncate.
   final int fd;
+
+  /// New file length in bytes.
   final int length;
+
+  /// Whether [fd] is a registered-file index.
   final bool fixedFile;
 
   @override
@@ -478,6 +586,7 @@ final class ListenOp implements UringOp {
 
 /// `IORING_OP_ACCEPT`.
 final class AcceptOp implements UringOp {
+  /// Creates an accept.
   const AcceptOp({
     required this.fd,
     this.addr,
@@ -486,6 +595,7 @@ final class AcceptOp implements UringOp {
     this.fixedFile = false,
   });
 
+  /// Listening socket fd.
   final int fd;
 
   /// Optional `struct sockaddr` output buffer.
@@ -494,7 +604,10 @@ final class AcceptOp implements UringOp {
   /// Optional `socklen_t` input/output buffer.
   final Pointer<Uint32>? addrLen;
 
+  /// `SOCK_*` accept flags.
   final int flags;
+
+  /// Whether [fd] is a registered-file index.
   final bool fixedFile;
 
   @override
