@@ -17,8 +17,10 @@
   suite, with a comparison runner (`benchmark/compare.dart`).
 - `bench-svg` integration: canonical JSON + `benchmark/bench-svg.toml` render
   `assets/benchmarks.svg`, embedded in the README.
-- CI benchmark job after tests: runs C/Dart benchmarks, renders the SVG,
-  uploads artifacts, and commits the refreshed chart back to the branch.
+- CI benchmark job after tests: runs C/Dart benchmarks, emits canonical JSON,
+  renders the SVG with `unk-404/benchmark_svg@master` (config-defined series, no
+  positional input), uploads artifacts, and commits the refreshed chart back to
+  the branch.
 - Hot-path performance work: 8×64-bit SQE zeroing, cached SQE Struct views,
   x86_64 barrier-fence elision (TSO), removed redundant CQ-head stores, and
   `reapCqes` raw batch reaping without per-completion object allocation.

@@ -109,8 +109,6 @@ jobs:
     concurrency:
       group: benchmark-svg-${{ github.ref }}
       cancel-in-progress: true
-    env:
-      BENCH_SVG_VERSION: v2026.10.19-48db7d1
     steps:
       - uses: actions/checkout@v4
         with:
@@ -125,18 +123,20 @@ jobs:
 
       - name: Install benchmark toolchain
         run: |
-          set -euo pipefail
           sudo apt-get update
           sudo apt-get install -y fonts-dejavu-core build-essential
-          mkdir -p build/tools/bench-svg
-          curl -fsSL \
-            "https://github.com/unk-404/benchmark_svg/releases/download/${BENCH_SVG_VERSION}/bench-svg-x86_64-unknown-linux-gnu.tar.gz" \
-            | tar -xz -C build/tools/bench-svg
 
-      - name: Run benchmarks and render SVG
-        env:
-          BENCH_SVG: ${{ github.workspace }}/build/tools/bench-svg/bench-svg
-        run: dart run benchmark/render_bench_svg.dart
+      - name: Run benchmarks and emit canonical JSON
+        run: dart run benchmark/render_bench_svg.dart --emit-only
+
+      - name: Render benchmark SVG
+        uses: unk-404/benchmark_svg@master
+        with:
+          # benchmark/bench-svg.toml defines [[series]], so input is optional.
+          format: json
+          config: benchmark/bench-svg.toml
+          out: assets/benchmarks.svg
+          font_file: /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf
 
       - name: Upload benchmark assets
         uses: actions/upload-artifact@v4

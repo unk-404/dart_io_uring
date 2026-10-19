@@ -5,6 +5,8 @@
 //
 // Set BENCH_SVG_FONT_FILE (or --font-file) when the default DejaVu path is not
 // available. Without --skip-run this re-runs benchmark/compare.dart first.
+// `--emit-only` writes the canonical JSON and exits; CI then renders it with the
+// unk-404/benchmark_svg GitHub Action.
 
 import 'dart:convert';
 import 'dart:io';
@@ -17,26 +19,8 @@ Future<void> main(List<String> arguments) async {
   }
 
   final skipRun = arguments.contains('--skip-run');
+  final emitOnly = arguments.contains('--emit-only');
   final out = _option(arguments, '--out') ?? 'assets/benchmarks.svg';
-  final benchSvg =
-      _option(arguments, '--bench-svg') ?? Platform.environment['BENCH_SVG'];
-  if (benchSvg == null || benchSvg.isEmpty) {
-    stderr.writeln('Set BENCH_SVG=/path/to/bench-svg or pass --bench-svg.');
-    exitCode = 2;
-    return;
-  }
-
-  final fontFile =
-      _option(arguments, '--font-file') ??
-      Platform.environment['BENCH_SVG_FONT_FILE'] ??
-      _defaultFont();
-  if (fontFile == null) {
-    stderr.writeln(
-      'No TTF font found. Pass --font-file or set BENCH_SVG_FONT_FILE.',
-    );
-    exitCode = 2;
-    return;
-  }
 
   late Map<String, dynamic> compare;
   if (skipRun) {
@@ -109,6 +93,32 @@ Future<void> main(List<String> arguments) async {
       ),
     ),
   );
+
+  stderr.writeln('==> wrote ${directory.path}/{c,dart-sync,dart-async}.json');
+  if (emitOnly) {
+    stdout.writeln(directory.path);
+    return;
+  }
+
+  final benchSvg =
+      _option(arguments, '--bench-svg') ?? Platform.environment['BENCH_SVG'];
+  if (benchSvg == null || benchSvg.isEmpty) {
+    stderr.writeln('Set BENCH_SVG=/path/to/bench-svg or pass --bench-svg.');
+    exitCode = 2;
+    return;
+  }
+
+  final fontFile =
+      _option(arguments, '--font-file') ??
+      Platform.environment['BENCH_SVG_FONT_FILE'] ??
+      _defaultFont();
+  if (fontFile == null) {
+    stderr.writeln(
+      'No TTF font found. Pass --font-file or set BENCH_SVG_FONT_FILE.',
+    );
+    exitCode = 2;
+    return;
+  }
 
   stderr.writeln('==> rendering $out');
   final render = await Process.run(benchSvg, [

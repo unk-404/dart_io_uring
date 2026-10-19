@@ -68,11 +68,20 @@ suites by [`bench-svg`](https://github.com/unk-404/benchmark_svg) with
 BENCH_SVG=/path/to/bench-svg dart run benchmark/render_bench_svg.dart
 # reuse build/benchmark_compare.json:
 BENCH_SVG=/path/to/bench-svg dart run benchmark/render_bench_svg.dart --skip-run
+# CI path: only emit canonical JSON, then let the GitHub Action render:
+dart run benchmark/render_bench_svg.dart --emit-only
 ```
 
 `render_bench_svg.dart` runs `compare.dart --json`, writes canonical
-`bench-svg/report@1` inputs to `build/bench-svg/`, and invokes `bench-svg render`.
-Use `--font-file` or `BENCH_SVG_FONT_FILE` if DejaVu Sans is not installed.
+`bench-svg/report@1` inputs to `build/bench-svg/`, and (locally) invokes
+`bench-svg render`. CI uses the standard
+[`unk-404/benchmark_svg@master`](https://github.com/unk-404/benchmark_svg) action
+with `benchmark/bench-svg.toml`; the config defines `[[series]]`, so the action's
+optional `input` is omitted. The action installs its own binary from the action
+repository, so CI does not download or run the CLI manually. The comparison card
+uses `bar_curve = "log"` so the async QD1 bar stays visible next to the much
+larger C/Dart sync values. Use `--font-file` or `BENCH_SVG_FONT_FILE` if DejaVu
+Sans is not installed.
 
 ## Notes
 

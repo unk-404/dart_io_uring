@@ -5,6 +5,9 @@ footer = "Higher is better · NOP / batch64 / 4 KiB read"
 width = 920.0
 theme = "pastel"
 kaomoji = ""
+bar_scale = "row"
+bar_curve = "log"
+missing = "skip"
 
 [[series]]
 label = "C (raw syscalls)"
