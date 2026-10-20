@@ -13,6 +13,8 @@
   honest linear scale.
 - Dartdoc coverage raised above the pub.dev 20% threshold (previously 17.2%),
   restoring the documentation score for v0.1.1.
+- Benchmark chart integration switched to `unk-404/benchcat@master`, canonical
+  `benchcat/report@1`, and `benchmark/benchcat.toml`.
 
 ## 0.1.0
 
@@ -31,10 +33,10 @@
   `io_uring_enter` and completes Futures.
 - C vs Dart benchmark suite: raw-syscall C ring and `benchmark_test` AOT Dart
   suite, with a comparison runner (`benchmark/compare.dart`).
-- `bench-svg` integration: canonical JSON + `benchmark/bench-svg.toml` render
+- `benchcat` integration: canonical JSON + `benchmark/benchcat.toml` render
   `assets/benchmarks.svg`, embedded in the README.
 - CI benchmark job after tests: runs C/Dart benchmarks, emits canonical JSON,
-  renders the SVG with `unk-404/benchmark_svg@master` (config-defined series, no
+  renders the SVG with `unk-404/benchcat@master` (config-defined series, no
   positional input), uploads artifacts, and commits the refreshed chart back to
   the branch.
 - Hot-path performance work: 8×64-bit SQE zeroing, cached SQE Struct views,

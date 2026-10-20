@@ -204,18 +204,18 @@ writes `build/benchmark_compare.json`. See `benchmark/README.md` for details.
 ![io_uring benchmark: native C vs Dart](https://raw.githubusercontent.com/unk-404/dart_io_uring/main/assets/benchmarks.svg)
 
 The SVG is rendered from both benchmark suites by
-[`bench-svg`](https://github.com/unk-404/benchmark_svg) using
-`benchmark/bench-svg.toml`:
+[`benchcat`](https://github.com/unk-404/benchcat) using
+`benchmark/benchcat.toml`:
 
 ```bash
-BENCH_SVG=/path/to/bench-svg dart run benchmark/render_bench_svg.dart
+BENCHCAT=/path/to/benchcat dart run benchmark/render_benchcat.dart
 # reuse the last build/benchmark_compare.json:
-BENCH_SVG=/path/to/bench-svg dart run benchmark/render_bench_svg.dart --skip-run
+BENCHCAT=/path/to/benchcat dart run benchmark/render_benchcat.dart --skip-run
 # only emit canonical JSON (used by CI):
-dart run benchmark/render_bench_svg.dart --emit-only
+dart run benchmark/render_benchcat.dart --emit-only
 ```
 
-`BENCH_SVG_FONT_FILE` (or `--font-file`) selects the TTF used for outlined
+`BENCHCAT_FONT_FILE` (or `--font-file`) selects the TTF used for outlined
 labels; the default is DejaVu Sans on Linux. These local commands are for
 debugging only; CI uses the GitHub Action below.
 
@@ -227,8 +227,8 @@ The [CI benchmark job](https://github.com/unk-404/dart_io_uring/blob/main/.githu
 depends on the test job, so it only runs after both architectures pass. It runs
 the C and Dart benchmarks, emits canonical JSON, and renders
 `assets/benchmarks.svg` with the standard
-[`unk-404/benchmark_svg@master`](https://github.com/unk-404/benchmark_svg) GitHub
-Action using `benchmark/bench-svg.toml`. The config defines `[[series]]`, so the
+[`unk-404/benchcat@master`](https://github.com/unk-404/benchcat) GitHub
+Action using `benchmark/benchcat.toml`. The config defines `[[series]]`, so the
 action's optional `input` is omitted. It uploads the SVG/JSON as artifacts and
 commits the refreshed SVG back when it changed. The commit uses `[skip ci]` to
 avoid a loop.

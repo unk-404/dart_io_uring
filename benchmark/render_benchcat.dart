@@ -1,19 +1,19 @@
-// Converts C/Dart benchmark results into bench-svg canonical JSON and renders
+// Converts C/Dart benchmark results into benchcat canonical JSON and renders
 // assets/benchmarks.svg.
 //
-//   BENCH_SVG=/path/to/bench-svg dart run benchmark/render_bench_svg.dart
+//   BENCHCAT=/path/to/benchcat dart run benchmark/render_benchcat.dart
 //
-// Set BENCH_SVG_FONT_FILE (or --font-file) when the default DejaVu path is not
+// Set BENCHCAT_FONT_FILE (or --font-file) when the default DejaVu path is not
 // available. Without --skip-run this re-runs benchmark/compare.dart first.
 // `--emit-only` writes the canonical JSON and exits; CI then renders it with the
-// unk-404/benchmark_svg GitHub Action.
+// unk-404/benchcat GitHub Action.
 
 import 'dart:convert';
 import 'dart:io';
 
 Future<void> main(List<String> arguments) async {
   if (!Platform.isLinux) {
-    stderr.writeln('bench-svg rendering is Linux-only in this repository.');
+    stderr.writeln('benchcat rendering is Linux-only in this repository.');
     exitCode = 1;
     return;
   }
@@ -57,7 +57,7 @@ Future<void> main(List<String> arguments) async {
   }
 
   final arch = compare['arch']?.toString() ?? 'unknown';
-  final directory = Directory('build/bench-svg')..createSync(recursive: true);
+  final directory = Directory('build/benchcat')..createSync(recursive: true);
   Directory('assets').createSync(recursive: true);
 
   File('${directory.path}/c.json').writeAsStringSync(
@@ -113,31 +113,31 @@ Future<void> main(List<String> arguments) async {
     return;
   }
 
-  final benchSvg =
-      _option(arguments, '--bench-svg') ?? Platform.environment['BENCH_SVG'];
-  if (benchSvg == null || benchSvg.isEmpty) {
-    stderr.writeln('Set BENCH_SVG=/path/to/bench-svg or pass --bench-svg.');
+  final benchcat =
+      _option(arguments, '--benchcat') ?? Platform.environment['BENCHCAT'];
+  if (benchcat == null || benchcat.isEmpty) {
+    stderr.writeln('Set BENCHCAT=/path/to/benchcat or pass --benchcat.');
     exitCode = 2;
     return;
   }
 
   final fontFile =
       _option(arguments, '--font-file') ??
-      Platform.environment['BENCH_SVG_FONT_FILE'] ??
+      Platform.environment['BENCHCAT_FONT_FILE'] ??
       _defaultFont();
   if (fontFile == null) {
     stderr.writeln(
-      'No TTF font found. Pass --font-file or set BENCH_SVG_FONT_FILE.',
+      'No TTF font found. Pass --font-file or set BENCHCAT_FONT_FILE.',
     );
     exitCode = 2;
     return;
   }
 
   stderr.writeln('==> rendering $out');
-  final render = await Process.run(benchSvg, [
+  final render = await Process.run(benchcat, [
     'render',
     '--config',
-    'benchmark/bench-svg.toml',
+    'benchmark/benchcat.toml',
     '--out',
     out,
     '--font-file',
@@ -163,7 +163,7 @@ Map<String, dynamic> _report({
   required double readMib,
 }) {
   return {
-    'schema': 'bench-svg/report@1',
+    'schema': 'benchcat/report@1',
     'meta': {
       'tool': tool,
       'platform': {'os': 'Linux', 'arch': arch},

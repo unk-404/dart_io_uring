@@ -127,14 +127,14 @@ jobs:
           sudo apt-get install -y fonts-dejavu-core build-essential
 
       - name: Run benchmarks and emit canonical JSON
-        run: dart run benchmark/render_bench_svg.dart --emit-only
+        run: dart run benchmark/render_benchcat.dart --emit-only
 
       - name: Render benchmark SVG
-        uses: unk-404/benchmark_svg@master
+        uses: unk-404/benchcat@master
         with:
-          # benchmark/bench-svg.toml defines [[series]], so input is optional.
+          # benchmark/benchcat.toml defines [[series]], so input is optional.
           format: json
-          config: benchmark/bench-svg.toml
+          config: benchmark/benchcat.toml
           out: assets/benchmarks.svg
           font_file: /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf
 

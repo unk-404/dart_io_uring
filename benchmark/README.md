@@ -64,26 +64,26 @@ dart run benchmark_test --compile aot --output jsonl \
 ## SVG chart
 
 The README chart lives in `assets/benchmarks.svg`. It is rendered from both
-suites by [`bench-svg`](https://github.com/unk-404/benchmark_svg) with
-`benchmark/bench-svg.toml`:
+suites by [`benchcat`](https://github.com/unk-404/benchcat) with
+`benchmark/benchcat.toml`:
 
 ```bash
-BENCH_SVG=/path/to/bench-svg dart run benchmark/render_bench_svg.dart
+BENCHCAT=/path/to/benchcat dart run benchmark/render_benchcat.dart
 # reuse build/benchmark_compare.json:
-BENCH_SVG=/path/to/bench-svg dart run benchmark/render_bench_svg.dart --skip-run
+BENCHCAT=/path/to/benchcat dart run benchmark/render_benchcat.dart --skip-run
 # CI path: only emit canonical JSON, then let the GitHub Action render:
-dart run benchmark/render_bench_svg.dart --emit-only
+dart run benchmark/render_benchcat.dart --emit-only
 ```
 
-`render_bench_svg.dart` runs `compare.dart --json`, writes canonical
-`bench-svg/report@1` inputs to `build/bench-svg/`, and (locally) invokes
-`bench-svg render`. CI uses the standard
-[`unk-404/benchmark_svg@master`](https://github.com/unk-404/benchmark_svg) action
-with `benchmark/bench-svg.toml`; the config defines `[[series]]`, so the action's
+`render_benchcat.dart` runs `compare.dart --json`, writes canonical
+`benchcat/report@1` inputs to `build/benchcat/`, and (locally) invokes
+`benchcat render`. CI uses the standard
+[`unk-404/benchcat@master`](https://github.com/unk-404/benchcat) action
+with `benchmark/benchcat.toml`; the config defines `[[series]]`, so the action's
 optional `input` is omitted. The action installs its own binary from the action
 repository, so CI does not download or run the CLI manually. Bars use the honest
 linear scale (`bar_curve = "linear"`); async QD1 is intentionally shown at its
-real size rather than compressed. Use `--font-file` or `BENCH_SVG_FONT_FILE` if
+real size rather than compressed. Use `--font-file` or `BENCHCAT_FONT_FILE` if
 DejaVu Sans is not installed.
 
 ## Notes

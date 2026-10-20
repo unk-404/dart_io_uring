@@ -11,22 +11,22 @@ missing = "skip"
 
 [[series]]
 label = "C (raw syscalls)"
-input = "build/bench-svg/c.json"
+input = "build/benchcat/c.json"
 color = "#5B8FF9"
 
 [[series]]
 label = "Dart sync"
-input = "build/bench-svg/dart-sync.json"
+input = "build/benchcat/dart-sync.json"
 color = "#61DDAA"
 
 [[series]]
 label = "Dart async"
-input = "build/bench-svg/dart-async.json"
+input = "build/benchcat/dart-async.json"
 color = "#F6BD16"
 
 [[series]]
 label = "Dart async (spin)"
-input = "build/bench-svg/dart-async-spin.json"
+input = "build/benchcat/dart-async-spin.json"
 color = "#E8684A"
 
 [[row]]
